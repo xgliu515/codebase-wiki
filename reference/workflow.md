@@ -21,19 +21,20 @@ Total: 2-4 hours wall-clock; most of it agents working in parallel while you rea
 
 ### Phase 0: Detect mode + gather inputs
 
-Probe the output directory first — `versions.json` present → append;
-root-level `index.html` + `web/js/chapters.js` but no `versions.json` →
-migrate; otherwise → fresh. See `reference/versioning.md`.
+Probe the output directory — no `projects.json` → new mono-repo;
+`projects.json` present and the target project dir absent → new project;
+`projects.json` present and the target project dir present → append
+version. See `reference/monorepo.md`.
 
 Ask user (one at a time):
 1. Codebase path
-2. Output directory
-3. Project name + GitHub repo (fresh only)
-4. Language (fresh only)
+2. Output directory (the mono-repo path)
+3. Project name + GitHub repo (new mono-repo / new project only)
+4. Language (new mono-repo / new project only)
 5. Lock version (default = current HEAD)
 
-Derive the version directory name: exact tag if any, else `<branch>-<shortSHA>`.
-Save to memory.
+Derive names: project dir = `slug(project name)`; version dir = exact tag
+if any, else `<branch>-<shortSHA>`. Save to memory.
 
 ### Phase 1: Explore the codebase
 
@@ -76,25 +77,25 @@ Use `templates/tour-step-prompt.md` + `reference/8-section-template.md`. Dispatc
 
 ### Phase 5: Web setup
 
-All per-version output goes into the version subdirectory `v<x>/`.
+All per-version output goes into `<project>/<version>/` inside the mono-repo.
 
 ```bash
 # Copy web shell into the version subdirectory
-mkdir -p <output>/v<x>
-cp -R <skill>/templates/web <output>/v<x>/
-cp <skill>/templates/index.html <output>/v<x>/index.html
+mkdir -p <output>/<project>/v<x>
+cp -R <skill>/templates/web <output>/<project>/v<x>/
+cp <skill>/templates/index.html <output>/<project>/v<x>/index.html
 
-# Edit v<x>/web/js/chapters.js: replace placeholders
+# Edit <project>/v<x>/web/js/chapters.js: replace placeholders
 #   PROJECT_GITHUB_REPO, ANALYZED_COMMIT, ANALYZED_TAG, ANALYZED_DATE
 #   CHAPTERS array entries
 #   TOURS array entries
 
-# Edit v<x>/web/js/architecture.js: rewrite the 4-layer LAYERS array
-# Edit v<x>/index.html: <title>
+# Edit <project>/v<x>/web/js/architecture.js: rewrite the 4-layer LAYERS array
+# Edit <project>/v<x>/index.html: <title>
 
 # Test
 cd <output> && python3 -m http.server 8765
-# Visit http://localhost:8765/  (version selector → pick a version)
+# Visit http://localhost:8765/  (project selector → version selector → viewer)
 ```
 
 ### Phase 6: SVG upgrade (iterative)
@@ -114,15 +115,17 @@ Process:
 - Use `currentColor` for theme-aware text
 - Cap viewBox width — set `class="figure-svg"` or `class="figure-svg wide"` (CSS handles max-width)
 
-### Phase 7: Publish (versioned)
+### Phase 7: Publish (mono-repo)
 
-**Fresh mode** — new repo:
+**New mono-repo** — first project in a brand-new repo:
 
 ```bash
 cd <output>
-cp <skill>/templates/version-index.html index.html   # replace {{PROJECT_NAME}}
+cp <skill>/templates/project-index.html index.html   # replace {{MONOREPO_TITLE}}
 cp <skill>/templates/selector.css selector.css
-cp <skill>/templates/versions.json versions.json      # fill the single entry
+cp <skill>/templates/projects.json projects.json      # fill the single entry
+# <project>/index.html from templates/version-index.html (replace {{PROJECT_NAME}})
+# <project>/versions.json from templates/versions.json (single entry)
 git init -b main
 git add -A
 git commit -m "initial release"
@@ -134,15 +137,20 @@ gh api -X POST /repos/<owner>/<repo>/pages \
   -f "source[path]=/"
 ```
 
-**Append mode** — existing wiki repo: add the new `v<x>/`, push a new
-entry to the head of `versions.json` and flip the prior `latest` to
-`false`, leave the top-level `index.html` / `selector.css` untouched,
-then `git add -A && git commit && git push`.
+**New project** — existing mono-repo: build a new `<project>/` (version
+selector + `versions.json` + first `v<x>/`), push a new entry to the head
+of `projects.json`, leave repo-root `index.html` / `selector.css`
+untouched, then `git add -A && git commit && git push`.
 
-**Migrate mode** — old flat-layout wiki: confirm with the user, `git mv`
-the old root content into `v<derived>/`, inject the version dropdown
-there, scaffold the top-level files + `versions.json`, then proceed as
-append mode. Full steps in `reference/versioning.md`.
+**Append version** — existing project: add `<project>/v<x>/`, update
+`<project>/versions.json` (head push, flip `latest`), update that
+project's entry in `projects.json` (`versions` / `latest` / `updated`,
+move to head), then `git add -A && git commit && git push`.
+
+**Importing existing standalone wiki repos**: confirm with the user, then
+for each source detect flat vs versioned layout, place its content under
+`<mono>/<project>/`, inject the project dropdown, and register the project
+in `projects.json`. Full steps in `reference/monorepo.md`.
 
 Tell user: live URL is `https://<owner>.github.io/<repo>/`, first build takes 1-2 min.
 
