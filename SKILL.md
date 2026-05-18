@@ -129,7 +129,7 @@ Then customize:
 4. **`web/serve.sh`**: generic, no edit needed — only touch it to change the default port if you
    want multiple wikis running concurrently
 
-5. **Top-level `index.html`** is the entry point. Test: `cd <output> && python3 -m http.server 8765` then visit `http://localhost:8765/`
+5. **The repo-root `index.html` (the version selector, from `templates/version-index.html`)** is the entry point. Test: `cd <output> && python3 -m http.server 8765` then visit `http://localhost:8765/`
 
 ---
 
@@ -199,7 +199,10 @@ move into and **get confirmation**. Then:
   `web/js/versions.js`, add the `<select id="version-switcher">` to its
   `index.html` topbar, add the import + `initVersionSwitcher()` call to its
   `web/js/app.js`, and add the `.version-switcher` rule to its
-  `web/css/style.css`. Do not touch chapter `.md` content.
+  `web/css/style.css`. Also patch its `web/js/chapters.js` to the
+  version-aware `STORAGE_PREFIX` block (adds `getCurrentVersionDir`, which
+  the injected `versions.js` imports — required, or the migrated viewer
+  breaks on startup). Do not touch chapter `.md` content.
 - Write the top-level `index.html`, `selector.css`, and `versions.json`
   (single entry = the migrated version).
 - Then proceed exactly as **append mode** to add this run's new version.

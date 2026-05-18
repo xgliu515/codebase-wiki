@@ -103,6 +103,7 @@ confirmed by the user before running (it `git mv`s many files):
    - Add `import { initVersionSwitcher } from './versions.js';` to that
      directory's `web/js/app.js` and a `initVersionSwitcher();` call in `main()`.
    - Add the `.version-switcher` CSS rule to that directory's `web/css/style.css`.
+   - Patch `v<derived>/web/js/chapters.js`: replace its old `STORAGE_PREFIX` block with the version-aware block — the `getCurrentVersionDir()` function plus the new `STORAGE_PREFIX` (identical to current `templates/web/js/chapters.js`). This is REQUIRED: the injected `web/js/versions.js` imports `getCurrentVersionDir` from `chapters.js`, so without it the migrated viewer throws a module error on startup.
    - Touch only navigation chrome — never the chapter `.md` content.
 4. Write the top-level `index.html` (selector), `selector.css`, and
    `versions.json` (single entry = the migrated version).
