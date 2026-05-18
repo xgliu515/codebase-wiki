@@ -32,15 +32,15 @@
 
 ### 在线预览（推荐）
 
-**<https://{{OWNER}}.github.io/{{PROJECT}}-wiki/>**
+**<https://{{OWNER}}.github.io/{{MONOREPO_REPO}}/>**
 
 ### 本地打开
 
 ```bash
-git clone https://github.com/{{OWNER}}/{{PROJECT}}-wiki.git
-cd {{PROJECT}}-wiki
+git clone https://github.com/{{OWNER}}/{{MONOREPO_REPO}}.git
+cd {{MONOREPO_REPO}}
 python3 -m http.server 8765
-# 浏览器打开 http://localhost:8765/ —— 先看到版本选择页，点进某个版本
+# 浏览器打开 http://localhost:8765/ —— 先看到项目选择页，选项目 → 版本 → wiki
 ```
 
 ### 直接看 markdown
