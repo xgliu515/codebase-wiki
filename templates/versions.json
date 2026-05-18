@@ -1,0 +1,13 @@
+{
+  "project": "{{PROJECT_NAME}}",
+  "versions": [
+    {
+      "dir": "{{VERSION_DIR}}",
+      "label": "{{VERSION_LABEL}}",
+      "commit": "{{COMMIT_SHORT}}",
+      "target_ref": "{{TARGET_REF}}",
+      "date": "{{DATE_ISO}}",
+      "latest": true
+    }
+  ]
+}
