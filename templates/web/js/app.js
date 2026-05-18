@@ -6,6 +6,7 @@ import { buildIndex, initSearchUI } from './search.js';
 import { initMermaid, setMermaidTheme, initModal, reRenderAllMermaid } from './diagrams.js';
 import { renderArchSVG, playArchAnimation, resetArchAnimation } from './architecture.js';
 import { initGlossary } from './glossary.js';
+import { initVersionSwitcher } from './versions.js';
 
 const contentEl = document.getElementById('content');
 
@@ -145,6 +146,9 @@ async function main() {
     setRepoRoot(updated);
     showToast(updated.trim() ? '已切到本地 VSCode 模式。刷新生效' : '已切到 GitHub 模式。刷新生效');
   });
+
+  // 版本切换下拉（无 versions.json 时自动隐藏，不阻塞启动）
+  initVersionSwitcher();
 
   // 键盘
   initKeybindings();
