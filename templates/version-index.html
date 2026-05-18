@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  顶层版本选择页 → 复制为 <output>/index.html（仓库根，version 子目录的同级）。
+  项目内的版本选择页 → 复制为 mono-repo 里的 <project>/index.html。
   替换 {{PROJECT_NAME}} 为项目名。页面内容完全由同级 versions.json 驱动，
   新增版本时本文件无需重新生成。
 -->
@@ -9,10 +9,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{PROJECT_NAME}} 中文参考 Wiki — 版本选择</title>
-  <link rel="stylesheet" href="selector.css">
+  <link rel="stylesheet" href="../selector.css">
 </head>
 <body>
   <main class="selector">
+    <p class="back-link"><a href="../index.html">← 所有项目</a></p>
     <h1>{{PROJECT_NAME}} <span>中文参考 Wiki</span></h1>
     <p class="subtitle">选择一个代码版本查看对应的 wiki。</p>
     <ul id="version-list" class="version-list"></ul>

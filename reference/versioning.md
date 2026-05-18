@@ -1,36 +1,29 @@
-# Versioning: multi-version wiki layout
+# Versioning: the version layer
 
-A wiki repo holds one or more versions of the target codebase, each as a
-self-contained subdirectory. This doc defines the layout, the version
-directory naming rule, the three run modes, and the migration path for
-old flat-layout wikis.
+Inside the mono-repo, each project directory holds one or more **versions**
+of that project's wiki: `<project>/<version>/`. This doc covers the version
+layer — directory naming, the `versions.json` manifest, the version
+selector page, and the in-viewer version dropdown. For the project layer
+and the overall repo, see `reference/monorepo.md`.
 
-## Repo layout
+## Where the version layer sits
 
 ```
-xxx-wiki/                       (git repo, GitHub Pages serves from main /)
-├── index.html                  top-level version selector (from templates/version-index.html)
-├── selector.css                selector page styles (from templates/selector.css)
-├── versions.json               version manifest — the single source of truth
-├── README.md  LICENSE  .gitignore
-├── v0.22.0/                    one complete, self-contained wiki
-│   ├── index.html              per-version viewer entry (from templates/index.html)
-│   ├── 01-...md ... 12-glossary-and-faq.md
-│   ├── tour-00-overview.md ... tour-NN-*.md
-│   └── web/  (css/  js/)
-├── v0.21.1/                    previous version, same structure, fully independent
-└── main-a1b2c3d/               no-tag example
+<mono-repo>/<project>/
+├── index.html        version selector (from templates/version-index.html)
+├── versions.json     this project's version manifest
+├── v0.22.0/          one complete, self-contained wiki
+│   ├── index.html  *.md  web/
+└── v0.21.1/
 ```
 
 Each `v<x>/` is a complete wiki that runs on its own. Versions share no
-files. Once generated, a version is frozen — later skill upgrades never
-touch it (the one exception: migration injects the version dropdown into
-a migrated old version, see below).
+files. Once generated, a version is frozen.
 
 ## versions.json
 
-The top-level `versions.json` drives both the selector page and the
-in-viewer dropdown. Schema:
+`<project>/versions.json` drives the project's version selector page and
+the in-viewer version dropdown.
 
 ```json
 {
@@ -51,69 +44,61 @@ in-viewer dropdown. Schema:
 - `date` — generation date (ISO).
 - `latest` — exactly one entry is `true`.
 
-The array is newest-first. Adding a version means pushing a new entry to
-the head and flipping the previous `latest` to `false`.
+The array is newest-first. Appending a version pushes a new entry to the
+head and flips the previous `latest` to `false`.
 
 ## Version directory naming
 
-After locking the target version (Phase 0), derive the directory name:
+After locking the target version:
 
-1. If `git describe --tags --exact-match HEAD` succeeds → use that tag, e.g. `v0.22.0/`.
-2. Otherwise → `<branch>-<shortSHA>`, e.g. `main-a1b2c3d/`. Branch is `git rev-parse --abbrev-ref HEAD`.
-3. Replace any `/` and other path-illegal characters with `-`.
-4. If the derived directory already exists, STOP and ask the user: overwrite it, or pick a different name. Never silently overwrite.
+1. `git describe --tags --exact-match HEAD` succeeds → use that tag, e.g. `v0.22.0/`.
+2. Otherwise → `<branch>-<shortSHA>`, e.g. `main-a1b2c3d/`. Branch from `git rev-parse --abbrev-ref HEAD`.
+3. Replace `/` and other path-illegal characters with `-`.
+4. If the derived directory already exists, STOP and ask the user: overwrite, or pick a different name. Never silently overwrite.
 
-## Three run modes
+## Version selector page
 
-When the skill runs, probe the output directory:
+`<project>/index.html` (from `templates/version-index.html`) fetches the
+sibling `versions.json` and lists versions as cards. It links back to the
+project selector via `../index.html` and loads `../selector.css`.
 
-| Detected | Mode | Action |
-|----------|------|--------|
-| Directory missing / empty, no `versions.json` | fresh | Build a new v2-layout repo |
-| `versions.json` present | append | Add one `v<x>/` |
-| Root-level `index.html` + `web/js/chapters.js`, no `versions.json` | migrate | Migrate the old wiki, then append |
+## In-viewer version dropdown
 
-### Fresh mode
+`web/js/versions.js` exports `initVersionSwitcher()`, which fetches
+`../versions.json`, renders the topbar version dropdown, and on change
+navigates to `../<dir>/index.html`. On fetch failure the dropdown hides
+itself. (`versions.js` also exports `initProjectSwitcher()` — see
+`reference/monorepo.md`.)
 
-`git init -b main` → write top-level `index.html`, `selector.css`,
-`README.md`, `LICENSE`, `.gitignore` → build the first `v<x>/` → write
-`versions.json` (single entry, `latest: true`) → commit → enable Pages.
+`STORAGE_PREFIX` in `chapters.js` includes `PROJECT_NAME` and the version
+directory name, so multiple versions on the same origin do not collide in
+localStorage.
 
-### Append mode
+## Converting an old flat-layout wiki to versioned
 
-Repo already exists → add a new `v<x>/` → push a new entry to the head of
-`versions.json` and flip the prior `latest` to `false` → top-level
-`index.html` / `selector.css` are NOT touched → commit and push.
-
-### Migrate mode
-
-The old flat-layout wiki has no `versions.json`. Migration must be
-confirmed by the user before running (it `git mv`s many files):
+Pre-versioning wikis have a flat layout (no `versions.json`). The import
+flow (`reference/monorepo.md`) converts them. The flat→versioned
+conversion for one wiki:
 
 1. Read the old `web/js/chapters.js` for `ANALYZED_TAG`, `ANALYZED_COMMIT`,
-   `ANALYZED_DATE`, `PROJECT_NAME`, `PROJECT_GITHUB_REPO`. Derive the
-   directory name via the naming rule (prefer `ANALYZED_TAG`, else `ANALYZED_COMMIT`).
-2. `git mv` the root-level old wiki — `index.html`, all `.md`, `web/` —
-   into `v<derived>/`. Keep `README.md`, `LICENSE`, `.gitignore`, `.git/`
-   at the root. `git mv` preserves history.
-3. Inject the version dropdown into the migrated version's viewer:
-   - Copy the new `web/js/versions.js` into `v<derived>/web/js/`.
-   - Add the `<select id="version-switcher" class="version-switcher" title="切换版本" hidden></select>`
-     element to that directory's `index.html` topbar, right after the `.brand` div.
-   - Add `import { initVersionSwitcher } from './versions.js';` to that
-     directory's `web/js/app.js` and a `initVersionSwitcher();` call in `main()`.
-   - Add the `.version-switcher` CSS rule to that directory's `web/css/style.css`.
-   - Patch `v<derived>/web/js/chapters.js`: replace its old `STORAGE_PREFIX` block with the version-aware block — the `getCurrentVersionDir()` function plus the new `STORAGE_PREFIX` (identical to current `templates/web/js/chapters.js`). This is REQUIRED: the injected `web/js/versions.js` imports `getCurrentVersionDir` from `chapters.js`, so without it the migrated viewer throws a module error on startup.
-   - Touch only navigation chrome — never the chapter `.md` content.
-4. Write the top-level `index.html` (selector), `selector.css`, and
-   `versions.json` (single entry = the migrated version).
-5. Continue in append mode to add the new version (the new version
-   becomes `latest`; the migrated version flips to `false`).
+   `ANALYZED_DATE`. Derive the version directory name (prefer `ANALYZED_TAG`,
+   else `ANALYZED_COMMIT`).
+2. Move the flat wiki's `index.html`, all `.md`, and `web/` into `v<x>/`.
+3. Patch `v<x>/web/js/chapters.js`: replace its old `STORAGE_PREFIX` block
+   with the version-aware block — `getCurrentVersionDir()`,
+   `getCurrentProjectDir()`, and the new `STORAGE_PREFIX` (identical to the
+   current `templates/web/js/chapters.js`). REQUIRED: the injected
+   `versions.js` imports those functions, or the viewer breaks on startup.
+4. Inject the version dropdown and project dropdown into `v<x>/`: copy in
+   `web/js/versions.js`, add `<select id="version-switcher">` and
+   `<select id="project-switcher">` to the `index.html` topbar, add the
+   imports + `initVersionSwitcher()` / `initProjectSwitcher()` calls to
+   `web/js/app.js`. Nav chrome only — never the chapter `.md` content.
+5. Create the project's `index.html` (version selector) + `versions.json`
+   (single entry).
 
 ## Error handling
 
-- Derived directory already exists → ask overwrite / rename; never silent overwrite.
-- `versions.json` corrupt or invalid → report and ask the user; never silently rebuild.
-- Migration → require user confirmation before `git mv`.
-- Viewer offline (no `versions.json` reachable) → the dropdown hides itself; the rest of the viewer is unaffected.
-- Branch name contains a slash (e.g. `feature/x`) → replace with `-` before appending the short SHA.
+- Version dir collision → ask overwrite / rename; never silent overwrite.
+- `versions.json` corrupt or invalid → report and ask the user.
+- Viewer offline (no `versions.json` reachable) → the version dropdown hides itself.

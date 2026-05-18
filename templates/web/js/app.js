@@ -6,7 +6,7 @@ import { buildIndex, initSearchUI } from './search.js';
 import { initMermaid, setMermaidTheme, initModal, reRenderAllMermaid } from './diagrams.js';
 import { renderArchSVG, playArchAnimation, resetArchAnimation } from './architecture.js';
 import { initGlossary } from './glossary.js';
-import { initVersionSwitcher } from './versions.js';
+import { initVersionSwitcher, initProjectSwitcher } from './versions.js';
 
 const contentEl = document.getElementById('content');
 
@@ -149,6 +149,9 @@ async function main() {
 
   // 版本切换下拉（无 versions.json 时自动隐藏，不阻塞启动）
   initVersionSwitcher();
+
+  // 项目切换下拉（无 projects.json 时自动隐藏，不阻塞启动）
+  initProjectSwitcher();
 
   // 键盘
   initKeybindings();

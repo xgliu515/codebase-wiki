@@ -1,4 +1,4 @@
-import { getCurrentVersionDir } from './chapters.js';
+import { getCurrentVersionDir, getCurrentProjectDir } from './chapters.js';
 
 // =========================================================
 // 版本切换下拉
@@ -42,6 +42,52 @@ export async function initVersionSwitcher() {
     const dir = sel.value;
     if (dir && dir !== current) {
       location.href = `../${dir}/index.html`;
+    }
+  });
+}
+
+// =========================================================
+// 项目切换下拉（mono-repo）
+// 运行时 fetch 顶层 ../../projects.json，在顶栏渲染项目下拉。
+// 切换项目 = 跳到目标项目的版本选择页。
+// fetch 失败（如非 mono-repo 布局、本地单目录打开）时静默隐藏下拉。
+// =========================================================
+
+export async function initProjectSwitcher() {
+  const sel = document.getElementById('project-switcher');
+  if (!sel) return;
+
+  let manifest;
+  try {
+    const resp = await fetch('../../projects.json', { cache: 'no-cache' });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    manifest = await resp.json();
+  } catch {
+    sel.hidden = true;
+    return;
+  }
+
+  const projects = Array.isArray(manifest && manifest.projects) ? manifest.projects : [];
+  if (projects.length < 1) {
+    sel.hidden = true;
+    return;
+  }
+
+  const current = getCurrentProjectDir();
+  sel.innerHTML = '';
+  for (const p of projects) {
+    const opt = document.createElement('option');
+    opt.value = p.dir;
+    opt.textContent = p.name || p.dir;
+    if (p.dir === current) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  sel.hidden = false;
+
+  sel.addEventListener('change', () => {
+    const dir = sel.value;
+    if (dir && dir !== current) {
+      location.href = `../../${dir}/index.html`;
     }
   });
 }
