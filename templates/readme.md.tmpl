@@ -1,0 +1,97 @@
+# {{PROJECT_NAME}} 中文参考 Wiki（非官方学习笔记）
+
+> **分析的版本**：[`{{OWNER}}/{{PROJECT}}@{{COMMIT_SHORT}}`](https://github.com/{{OWNER}}/{{PROJECT}}/tree/{{COMMIT_SHORT}})（{{TAG_OR_DESCRIBE}}，{{DATE_ISO}}）。所有 `file:line` 引用、跳转链接都锁定在这个 commit——你点开链接看到的代码跟 wiki 写的时候是一致的。
+>
+> **免责声明**：本仓库是个人学习 [{{PROJECT_NAME}}]({{UPSTREAM_URL}}) 源码时整理的中文笔记，**与 {{UPSTREAM_OWNER}} 官方无任何关联**，未获其背书。所有解读基于本人理解，可能有误，准确性以源码为准。
+>
+> **AI 协助声明**：本仓库的章节正文与可视化由 Claude（Anthropic）协助生成，作者审阅并迭代修订。上游主线演进很快——本 wiki 的行号锁定在上面的 commit，未来代码更新后想看新版的同名实现，自己 grep 一下。
+
+---
+
+## 这是什么
+
+一份**面向第一次想认真读 {{PROJECT_NAME}} 源码的人**的中文 wiki，包含：
+
+- **{{N_TOUR_STEPS}} 步单请求 Trace 导览**：跟随一次最简单的真实请求，按"当前情境 → 问题 → 朴素思路 → 为何崩 → 实际做法 → 代码位置 → 分支延伸 → 你脑子里多了什么"的固定 8 段模板，把请求穿过整个系统的过程一步步拆开
+- **{{N_CHAPTERS}} 章参考手册**：覆盖各个子系统的完整解读
+- **{{N_FIGURES}}+ 张手写 SVG 图**：覆盖关键数据结构、状态机、调用流、对比图
+- **交互式网页**：术语弹窗、全文搜索、键盘导航、可点击架构图、`file:line` 直跳 GitHub
+
+---
+
+## 怎么看
+
+### 在线预览（推荐）
+
+**<https://{{OWNER}}.github.io/{{PROJECT}}-wiki/>**
+
+### 本地打开
+
+```bash
+git clone https://github.com/{{OWNER}}/{{PROJECT}}-wiki.git
+cd {{PROJECT}}-wiki
+./web/serve.sh
+# 自动开浏览器到 http://localhost:8765/
+```
+
+或不用脚本：
+
+```bash
+python3 -m http.server 8765 --bind 127.0.0.1
+```
+
+### 直接看 markdown
+
+GitHub 仓库视图能渲染所有 markdown 和 SVG，只是交互功能需要浏览器。
+
+---
+
+## `file:line` 链接：默认 GitHub，可切本地 VSCode
+
+文档里大量出现的 `path/to/file.py:123` 这类引用，在网页版都是可点击链接。
+
+**GitHub 模式（默认）**：点击 → 浏览器新 tab 打开 `{{OWNER}}/{{PROJECT}}` 在 `{{COMMIT_SHORT}}` commit 下的对应行号。开箱即用。
+
+**本地 VSCode 模式（可选）**：点顶栏右上角"**源码**"按钮，填本地 clone 的绝对路径，切换到 VSCode 跳转。设置存在 localStorage，做一次就行。
+
+---
+
+## 章节地图
+
+### 单请求 Trace 导览
+
+<!-- AUTOGEN: chapter index here -->
+
+### {{N_CHAPTERS}} 章参考手册
+
+<!-- AUTOGEN: chapter index here -->
+
+---
+
+## 网页特性
+
+- **3 栏布局**：左侧章节导航 / 中间正文 / 右侧本页 TOC（带 scrollspy 高亮）
+- **首页可交互架构图**：点 4 层中任意一层跳转，可"播放"一次请求穿过 4 层的动画
+- **术语高亮 + 弹窗**：正文中的术语自动加虚线下划线；点击弹出右侧 panel 显示定义，定义内可再点其它术语递归展开
+- **全文搜索**：客户端 MiniSearch 索引所有文档（中英文）
+- **`file:line` → 跳转**：默认 GitHub，可切 VSCode（见上）
+- **键盘**：`/` 搜索、`j`/`k` 翻章、`t` 主题、`g h` 回首页、`Esc` 关弹窗
+- **深 / 浅主题**：本地存储记忆，初次跟随系统
+
+---
+
+## 贡献
+
+- 错误、行号失效 → 欢迎 Issue
+- 想补章节或图 → 欢迎 PR，但先 Issue 讨论
+- 大段重写不建议——架构和文风已成型
+
+---
+
+## License
+
+[MIT](LICENSE)。{{PROJECT_NAME}} 项目本身的 license 见上游；本仓库引用的所有源码 `file:line` 归 {{UPSTREAM_OWNER}} 及其贡献者所有。
+
+---
+
+*用 [codebase-wiki](https://github.com/xgliu515/codebase-wiki) skill 生成。*
