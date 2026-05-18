@@ -64,3 +64,4 @@ body {
 .back-link { margin: 0 0 16px; font-size: 13px; }
 .back-link a { color: var(--text-soft); text-decoration: none; }
 .back-link a:hover { color: var(--accent); }
+.vc-tagline { margin: 0 0 10px; color: var(--text-soft); font-size: 13px; }
