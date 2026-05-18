@@ -4,7 +4,8 @@ import hljs from 'https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/+esm';
 // LaTeX 数学公式渲染（KaTeX）。extension 必须在 marked 解析前注册，否则 $..$ 内部的 _ ^ 会被当 markdown 处理
 import markedKatex from 'https://cdn.jsdelivr.net/npm/marked-katex-extension@5/+esm';
 
-import { CHAPTER_BY_ID, TOURS, getRepoMode, VLLM_ANALYZED_COMMIT, VLLM_ANALYZED_TAG, VLLM_ANALYZED_DATE, VLLM_GITHUB_REPO } from './chapters.js';
+import { CHAPTER_BY_ID, TOURS, getRepoMode, PROJECT_NAME, PROJECT_TAGLINE, PROJECT_FOCUS, TRACE_TARGET,
+         ANALYZED_COMMIT, ANALYZED_TAG, ANALYZED_DATE, PROJECT_GITHUB_REPO } from './chapters.js';
 import { parseFileRef, makeCodeURL, escapeHTML, slugify } from './utils.js';
 import { renderMermaidIn } from './diagrams.js';
 import { enhanceWithGlossary } from './glossary.js';
@@ -100,27 +101,28 @@ export async function loadChapter(chapterId, anchor, contentEl) {
 // =========================================================
 
 export function renderHome(contentEl, chapters) {
-  const totalLines = 11705 + 3124;
+  const stepCount = Math.max(TOURS.length - 1, 0);   // 减去 tour-00 总览
+  const chapterCount = chapters.length;
+  const firstStep = TOURS.find(t => t.id !== 'tour-00-overview');
   let html = `
     <div class="home-hero">
-      <h1>vLLM 中文参考 Wiki</h1>
-      <p class="lede">为深入学习 vLLM 源码、最终自己实现一个 LLM 推理引擎而写的可查询参考文档。</p>
+      <h1>${PROJECT_NAME} 中文参考 Wiki</h1>
+      <p class="lede">${PROJECT_TAGLINE}</p>
       <div class="home-stats">
-        <div class="stat"><strong>17</strong> 步导览 + <strong>12</strong> 章参考</div>
-        <div class="stat"><strong>${totalLines.toLocaleString()}</strong> 行</div>
-        <div class="stat">分析版本：<a href="https://github.com/${VLLM_GITHUB_REPO}/tree/${VLLM_ANALYZED_COMMIT}" target="_blank" rel="noopener"><strong>${VLLM_ANALYZED_TAG}</strong></a> <span style="color:var(--text-faint)">(${VLLM_ANALYZED_DATE})</span></div>
-        <div class="stat">聚焦：<strong>V1 架构</strong></div>
+        <div class="stat"><strong>${stepCount}</strong> 步导览 + <strong>${chapterCount}</strong> 章参考</div>
+        <div class="stat">分析版本：<a href="https://github.com/${PROJECT_GITHUB_REPO}/tree/${ANALYZED_COMMIT}" target="_blank" rel="noopener"><strong>${ANALYZED_TAG}</strong></a> <span style="color:var(--text-faint)">(${ANALYZED_DATE})</span></div>
+        ${PROJECT_FOCUS ? `<div class="stat">聚焦：<strong>${PROJECT_FOCUS}</strong></div>` : ''}
       </div>
     </div>
 
     <section style="background:var(--accent-soft);border:1px solid var(--accent);border-radius:12px;padding:18px 22px;margin:24px 0 28px">
-      <h2 style="margin:0 0 6px;font-size:20px;color:var(--accent);">推荐第一遍这样学：跟一次最简请求穿过 vllm 全栈</h2>
+      <h2 style="margin:0 0 6px;font-size:20px;color:var(--accent);">推荐第一遍这样学：跟一次最简请求穿过 ${PROJECT_NAME} 全栈</h2>
       <p style="margin:0 0 12px;color:var(--text-soft);font-size:14px;">
-        17 步导览，按 <strong>问题 → 朴素思路为何崩 → vllm 怎么解决</strong> 的逻辑链展开。
-        围绕 <code>llm.generate(["你好"], max_tokens=3)</code> 一个具体请求，逐层走完整个 vllm。
+        ${stepCount} 步导览，按 <strong>问题 → 朴素思路为何崩 → ${PROJECT_NAME} 怎么解决</strong> 的逻辑链展开。
+        围绕 <code>${escapeHTML(TRACE_TARGET)}</code> 一个具体请求，逐层走完整个 ${PROJECT_NAME}。
       </p>
       <a href="#/tour-00-overview" style="display:inline-block;background:var(--accent);color:white;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">→ 进入导览（建议第一次学先读这个）</a>
-      <a href="#/tour-01-kv-cache-sizing" style="display:inline-block;margin-left:8px;color:var(--accent);padding:8px 16px;border-radius:6px;text-decoration:none;font-size:14px;">或直接看第 1 步样品</a>
+      ${firstStep ? `<a href="#/${firstStep.id}" style="display:inline-block;margin-left:8px;color:var(--accent);padding:8px 16px;border-radius:6px;text-decoration:none;font-size:14px;">或直接看第 1 步样品</a>` : ''}
     </section>
 
     <section class="arch-section" id="arch-section">
@@ -137,9 +139,9 @@ export function renderHome(contentEl, chapters) {
     </section>
 
     <section>
-      <h2 style="font-size:20px;margin-bottom:8px;">单请求 Trace 导览（17 步）</h2>
+      <h2 style="font-size:20px;margin-bottom:8px;">单请求 Trace 导览（${stepCount} 步）</h2>
       <p style="color:var(--text-soft);margin-top:0;font-size:14px;">
-        每步约 150 行，按 8 段模板：当前情境 → 问题 → 朴素思路 → 为何崩 → vllm 做法 → 代码位置 → 分支链接 → 学到了什么。
+        每步约 150 行，按 8 段模板：当前情境 → 问题 → 朴素思路 → 为何崩 → ${PROJECT_NAME} 做法 → 代码位置 → 分支链接 → 学到了什么。
       </p>
       <div class="chapter-grid">
         ${TOURS.map(t => `
@@ -153,7 +155,7 @@ export function renderHome(contentEl, chapters) {
     </section>
 
     <section style="margin-top:32px;">
-      <h2 style="font-size:20px;margin-bottom:8px;">参考手册（12 章）</h2>
+      <h2 style="font-size:20px;margin-bottom:8px;">参考手册（${chapterCount} 章）</h2>
       <p style="color:var(--text-soft);margin-top:0;font-size:14px;">
         完整的子系统参考，作为导览的深度补充。每章独立，可随时跳转。
       </p>

@@ -1,4 +1,4 @@
-import { getRepoMode, getRepoRoot, VLLM_GITHUB_REPO, VLLM_ANALYZED_COMMIT } from './chapters.js';
+import { getRepoMode, getRepoRoot, PROJECT_GITHUB_REPO, ANALYZED_COMMIT } from './chapters.js';
 
 // =========================================================
 // 代码跳转链接（默认走 GitHub，可切到本地 VSCode）
@@ -19,7 +19,7 @@ export function makeCodeURL(relPath, line) {
     const parts = String(line).split('-');
     suf = parts.length === 2 ? `#L${parts[0]}-L${parts[1]}` : `#L${parts[0]}`;
   }
-  return `https://github.com/${VLLM_GITHUB_REPO}/blob/${VLLM_ANALYZED_COMMIT}/${relPath}${suf}`;
+  return `https://github.com/${PROJECT_GITHUB_REPO}/blob/${ANALYZED_COMMIT}/${relPath}${suf}`;
 }
 
 // 兼容旧名

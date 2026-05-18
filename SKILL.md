@@ -84,19 +84,26 @@ Recommended dispatch:
 
 Copy the **entire `templates/web/` directory** to the output. Then customize:
 
-1. **`web/js/chapters.js`** (the only file requiring per-project edits):
+1. **`web/js/chapters.js`** (the only JS file requiring per-project edits — all other
+   `web/js/*.js` import the constants below, so do **not** hardcode the project name anywhere else):
+   - `PROJECT_NAME` → friendly name, e.g., `vLLM` (used in page titles, home page, GitHub link labels)
    - `PROJECT_GITHUB_REPO` → e.g., `vllm-project/vllm`
    - `ANALYZED_COMMIT` → e.g., `086749736`
    - `ANALYZED_TAG` → e.g., `v0.21.1rc0+35`
    - `ANALYZED_DATE` → e.g., `2026-05-17`
+   - `PROJECT_TAGLINE` → one-line home page subtitle
+   - `PROJECT_FOCUS` → focus scope shown on the home page, e.g., `V1 架构`; leave `''` to hide it
+   - `TRACE_TARGET` → the minimum-viable request the trace tour follows, e.g., `llm.generate(["你好"], max_tokens=3)`
    - `CHAPTERS` array → 10-15 entries matching what you generated
-   - `TOURS` array → 15-20 entries matching tour steps
+   - `TOURS` array → 15-20 entries matching tour steps (tour-00-overview + steps)
+   - `STORAGE_PREFIX` is auto-derived from `PROJECT_NAME` — no edit needed
 
-2. **`web/js/architecture.js`**: rewrite the 4-layer SVG to match this project's architecture (see vllm-wiki's version as template)
+2. **`web/js/architecture.js`**: rewrite the 4-layer SVG to match this project's architecture
 
-3. **`index.html`**: change `<title>` to your project name
+3. **`index.html`**: replace the `{{PROJECT_NAME}}` placeholders (title + brand) with the project name
 
-4. **`web/serve.sh`**: change default port if you want multiple wikis running concurrently
+4. **`web/serve.sh`**: generic, no edit needed — only touch it to change the default port if you
+   want multiple wikis running concurrently
 
 5. **Top-level `index.html`** is the entry point. Test: `cd <output> && python3 -m http.server 8765` then visit `http://localhost:8765/`
 

@@ -6,8 +6,9 @@
 
 import { marked } from 'https://cdn.jsdelivr.net/npm/marked@15.0.4/lib/marked.esm.js';
 import { parseFileRef, makeCodeURL, escapeHTML } from './utils.js';
+import { STORAGE_PREFIX } from './chapters.js';
 
-const STORAGE_KEY = 'vllm-wiki-viewed-terms';
+const STORAGE_KEY = `${STORAGE_PREFIX}-viewed-terms`;
 
 // 解析得到的术语库：key 是规范化的术语名，value 是 {primary, variants, definition, codeLocation, html, slug}
 const TERMS = new Map();

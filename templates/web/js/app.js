@@ -1,4 +1,4 @@
-import { CHAPTERS, TOURS, ALL_DOCS, getRepoRoot, setRepoRoot, VLLM_ANALYZED_COMMIT, VLLM_ANALYZED_TAG } from './chapters.js';
+import { CHAPTERS, TOURS, ALL_DOCS, getRepoRoot, setRepoRoot, PROJECT_NAME, STORAGE_PREFIX, ANALYZED_COMMIT } from './chapters.js';
 import { parseHash, buildHash, showToast } from './utils.js';
 import { loadChapter, renderHome } from './content.js';
 import { renderChapterList, renderPageToc } from './sidebar.js';
@@ -15,7 +15,7 @@ const contentEl = document.getElementById('content');
 
 function applyTheme(theme) {
   document.body.dataset.theme = theme;
-  localStorage.setItem('vllm-wiki-theme', theme);
+  localStorage.setItem(`${STORAGE_PREFIX}-theme`, theme);
   // highlight.js 主题切换
   document.getElementById('hljs-theme').href = (theme === 'dark')
     ? 'https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/styles/atom-one-dark.min.css'
@@ -48,7 +48,7 @@ async function route() {
       document.getElementById('arch-reset-btn')?.addEventListener('click', resetArchAnimation);
     }
     contentEl.scrollTo({ top: 0 });
-    document.title = 'vLLM 中文参考 Wiki';
+    document.title = `${PROJECT_NAME} 中文参考 Wiki`;
     return;
   }
 
@@ -56,7 +56,7 @@ async function route() {
   const result = await loadChapter(chapterId, anchor, contentEl);
   if (result) {
     renderPageToc(result.toc, contentEl);
-    document.title = `${result.chapter.num} · ${result.chapter.title} — vLLM Wiki`;
+    document.title = `${result.chapter.num} · ${result.chapter.title} — ${PROJECT_NAME} Wiki`;
   } else {
     renderPageToc([], contentEl);
   }
@@ -121,7 +121,7 @@ function initKeybindings() {
 
 async function main() {
   // 主题初始化
-  const savedTheme = localStorage.getItem('vllm-wiki-theme')
+  const savedTheme = localStorage.getItem(`${STORAGE_PREFIX}-theme`)
     || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   applyTheme(savedTheme);
   initMermaid(savedTheme);
@@ -133,12 +133,12 @@ async function main() {
   document.getElementById('next-chapter').addEventListener('click', () => gotoChapter(1));
   document.getElementById('repo-root-btn').addEventListener('click', () => {
     const cur = getRepoRoot();
-    const mode = cur ? '本地 VSCode' : `GitHub (vllm@${VLLM_ANALYZED_COMMIT})`;
+    const mode = cur ? '本地 VSCode' : `GitHub (${PROJECT_NAME}@${ANALYZED_COMMIT})`;
     const updated = prompt(
       `当前模式：${mode}\n\n` +
       `留空（默认）→ 跳到 GitHub 上对应 commit、对应行号\n` +
-      `输入本地 vllm 仓库绝对路径 → 跳到本地 VSCode（需先装好 VSCode）\n\n` +
-      `路径示例：/Users/你的名字/git/vllm`,
+      `输入本地 ${PROJECT_NAME} 仓库绝对路径 → 跳到本地 VSCode（需先装好 VSCode）\n\n` +
+      `路径示例：/Users/你的名字/git/<仓库目录>`,
       cur
     );
     if (updated === null) return;
@@ -159,7 +159,7 @@ async function main() {
   // 后台构建搜索索引
   buildIndex().then(() => {
     initSearchUI();
-    console.log('[vLLM Wiki] 搜索索引已就绪');
+    console.log(`[${PROJECT_NAME} Wiki] 搜索索引已就绪`);
   }).catch(err => console.error('索引构建失败', err));
 }
 

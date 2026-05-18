@@ -3,7 +3,7 @@
 // ============================================================
 // REPLACE EVERYTHING IN THIS FILE WITH PROJECT-SPECIFIC DATA
 // ============================================================
-// The placeholders below show the structure used by vllm-wiki.
+// The placeholders below show the structure expected by the web viewer.
 // Edit CHAPTERS / TOURS arrays to match your generated content.
 
 export const CHAPTERS = [
@@ -34,24 +34,31 @@ export const ALL_DOCS = [...CHAPTERS, ...TOURS];
 export const CHAPTER_BY_ID = Object.fromEntries(ALL_DOCS.map(c => [c.id, c]));
 
 // =========================================================
-// 分析的代码版本（升级版本时改这 4 个常量即可，所有 GitHub 跳转链接都会更新）
+// 项目信息 —— 本文件是整个 web 查看器唯一需要按项目修改的 JS 文件。
+// 其它 web/js/*.js 都从这里 import 这些常量，请勿在别处写死项目名。
 // =========================================================
+export const PROJECT_NAME = '{{PROJECT_NAME}}';   // 友好名，用于标题/首页，e.g. 'vLLM'
+
+// 分析的代码版本（升级版本时改这 4 个常量即可，所有 GitHub 跳转链接都会更新）
 export const PROJECT_GITHUB_REPO = '{{OWNER}}/{{PROJECT}}';   // e.g. 'vllm-project/vllm'
 export const ANALYZED_COMMIT = '{{COMMIT_SHORT}}';            // e.g. '086749736'
 export const ANALYZED_TAG = '{{TAG_OR_DESCRIBE}}';            // e.g. 'v0.21.1rc0+35'
 export const ANALYZED_DATE = '{{DATE_ISO}}';                  // e.g. '2026-05-17'
 
-// 旧名兼容（部分早期文件仍引用这两个名字）
-export const VLLM_GITHUB_REPO = PROJECT_GITHUB_REPO;
-export const VLLM_ANALYZED_COMMIT = ANALYZED_COMMIT;
-export const VLLM_ANALYZED_TAG = ANALYZED_TAG;
-export const VLLM_ANALYZED_DATE = ANALYZED_DATE;
+// 首页文案
+export const PROJECT_TAGLINE = '{{PROJECT_TAGLINE}}';  // 首页副标题，一句话，e.g. '为深入学习 vLLM 源码而写的可查询参考文档。'
+export const PROJECT_FOCUS = '{{PROJECT_FOCUS}}';      // 聚焦范围，e.g. 'V1 架构'；留空字符串则首页不显示这一项
+export const TRACE_TARGET = '{{TRACE_TARGET}}';        // trace 导览跟踪的最简请求，e.g. 'llm.generate(["你好"], max_tokens=3)'
+
+// localStorage key 前缀：由 PROJECT_NAME 自动派生，避免多个 wiki 互相覆盖
+export const STORAGE_PREFIX =
+  (PROJECT_NAME.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'codebase') + '-wiki';
 
 // =========================================================
 // file:line 跳转链接：默认走 GitHub（任何人可用），可切换成本地 VSCode
 // localStorage 里有 path → 'local' 模式；没有 → 'github' 模式
 // =========================================================
-const REPO_ROOT_KEY = '{{PROJECT}}-wiki-repo-root';
+const REPO_ROOT_KEY = STORAGE_PREFIX + '-repo-root';
 
 export function getRepoMode() {
   return getRepoRoot() ? 'local' : 'github';
@@ -68,6 +75,3 @@ export function setRepoRoot(path) {
     else localStorage.removeItem(REPO_ROOT_KEY);
   } catch {}
 }
-
-// 旧名兼容
-export const VLLM_REPO_ROOT = '';
