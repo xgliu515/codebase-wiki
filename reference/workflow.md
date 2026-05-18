@@ -19,15 +19,20 @@ Total: 2-4 hours wall-clock; most of it agents working in parallel while you rea
 
 ## Step-by-step
 
-### Phase 0: Gather inputs
+### Phase 0: Detect mode + gather inputs
+
+Probe the output directory first — `versions.json` present → append;
+root-level `index.html` + `web/js/chapters.js` but no `versions.json` →
+migrate; otherwise → fresh. See `reference/versioning.md`.
 
 Ask user (one at a time):
 1. Codebase path
-2. Project name + GitHub repo
-3. Output directory
-4. Language (Chinese / English / bilingual)
+2. Output directory
+3. Project name + GitHub repo (fresh only)
+4. Language (fresh only)
 5. Lock version (default = current HEAD)
 
+Derive the version directory name: exact tag if any, else `<branch>-<shortSHA>`.
 Save to memory.
 
 ### Phase 1: Explore the codebase
@@ -71,22 +76,25 @@ Use `templates/tour-step-prompt.md` + `reference/8-section-template.md`. Dispatc
 
 ### Phase 5: Web setup
 
-```bash
-# Copy web shell
-cp -R <skill>/templates/web/* <output>/
-cp <skill>/templates/web/index.html <output>/
+All per-version output goes into the version subdirectory `v<x>/`.
 
-# Edit web/js/chapters.js: replace placeholders
+```bash
+# Copy web shell into the version subdirectory
+mkdir -p <output>/v<x>
+cp -R <skill>/templates/web <output>/v<x>/
+cp <skill>/templates/index.html <output>/v<x>/index.html
+
+# Edit v<x>/web/js/chapters.js: replace placeholders
 #   PROJECT_GITHUB_REPO, ANALYZED_COMMIT, ANALYZED_TAG, ANALYZED_DATE
 #   CHAPTERS array entries
 #   TOURS array entries
 
-# Edit web/js/architecture.js: rewrite the 4-layer LAYERS array
-# Edit index.html: <title>
+# Edit v<x>/web/js/architecture.js: rewrite the 4-layer LAYERS array
+# Edit v<x>/index.html: <title>
 
 # Test
 cd <output> && python3 -m http.server 8765
-# Visit http://localhost:8765/
+# Visit http://localhost:8765/  (version selector → pick a version)
 ```
 
 ### Phase 6: SVG upgrade (iterative)
@@ -106,22 +114,35 @@ Process:
 - Use `currentColor` for theme-aware text
 - Cap viewBox width — set `class="figure-svg"` or `class="figure-svg wide"` (CSS handles max-width)
 
-### Phase 7: Publish
+### Phase 7: Publish (versioned)
+
+**Fresh mode** — new repo:
 
 ```bash
 cd <output>
+cp <skill>/templates/version-index.html index.html   # replace {{PROJECT_NAME}}
+cp <skill>/templates/selector.css selector.css
+cp <skill>/templates/versions.json versions.json      # fill the single entry
 git init -b main
 git add -A
 git commit -m "initial release"
 git remote add origin <user's repo URL>
 git push -u origin main
-
-# Enable GitHub Pages
 gh api -X POST /repos/<owner>/<repo>/pages \
   -f "build_type=legacy" \
   -f "source[branch]=main" \
   -f "source[path]=/"
 ```
+
+**Append mode** — existing wiki repo: add the new `v<x>/`, push a new
+entry to the head of `versions.json` and flip the prior `latest` to
+`false`, leave the top-level `index.html` / `selector.css` untouched,
+then `git add -A && git commit && git push`.
+
+**Migrate mode** — old flat-layout wiki: confirm with the user, `git mv`
+the old root content into `v<derived>/`, inject the version dropdown
+there, scaffold the top-level files + `versions.json`, then proceed as
+append mode. Full steps in `reference/versioning.md`.
 
 Tell user: live URL is `https://<owner>.github.io/<repo>/`, first build takes 1-2 min.
 
