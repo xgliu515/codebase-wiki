@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  This file goes to <output>/index.html (project root, sibling of web/).
+  This file goes to <output>/v<x>/index.html (the version subdirectory, sibling of web/).
   Replace {{PROJECT_NAME}} with the project name (e.g., "vLLM", "hermes-agent").
 -->
 <html lang="zh-CN">
@@ -17,6 +17,7 @@
     <div class="brand">
       <a href="#/">{{PROJECT_NAME}}<span class="brand-sub"> Wiki</span></a>
     </div>
+    <select id="version-switcher" class="version-switcher" title="切换版本" hidden></select>
     <div class="search-wrap">
       <input id="search-input" type="search" placeholder="搜索 (按 /  聚焦)" autocomplete="off" spellcheck="false">
       <div id="search-results" class="search-results" hidden></div>

@@ -15,17 +15,37 @@ This skill is the result of iteratively building such a wiki for vLLM (see `exam
 
 ---
 
-## Phase 0: Gather inputs (do this first)
+## Phase 0: Detect mode + gather inputs (do this first)
+
+A wiki repo holds **multiple versions** of the target codebase, one
+self-contained `v<x>/` subdirectory each. See `reference/versioning.md`.
+
+**First, probe the output directory** to pick a mode:
+
+| Detected | Mode | Meaning |
+|----------|------|---------|
+| Directory missing / empty, no `versions.json` | fresh | Build a new versioned repo |
+| `versions.json` present | append | Add a new version to an existing wiki |
+| Root-level `index.html` + `web/js/chapters.js`, no `versions.json` | migrate | Old flat-layout wiki — migrate, then append |
 
 Ask the user **one question at a time** (no batches):
 
 1. **Codebase path**: absolute path on disk (used to read source for `file:line` refs)
-2. **Project name + GitHub repo**: e.g., `vllm` + `vllm-project/vllm`
-3. **Output directory**: where to put the generated wiki (suggest `<sibling>/<project>-wiki`)
-4. **Wiki language**: Chinese (default) / English / bilingual
+2. **Output directory**: where the wiki repo is / will be
+3. **Project name + GitHub repo** (fresh mode only — append/migrate reuse the existing value): e.g., `vllm` + `vllm-project/vllm`
+4. **Wiki language** (fresh mode only): Chinese (default) / English / bilingual
 5. **Lock version**: confirm `git rev-parse --short HEAD` of the codebase as the analyzed commit, or let user specify a tag
 
-Confirm before proceeding. Save these to memory if persistent (so next session knows).
+In **append / migrate** mode, read the existing `versions.json` (append)
+or old `web/js/chapters.js` (migrate) and tell the user which versions
+already exist and which one this run will add.
+
+**Derive the version directory name** from the locked version:
+`git describe --tags --exact-match HEAD` → use the tag (`v0.22.0/`);
+otherwise `<branch>-<shortSHA>` (`main-a1b2c3d/`). If that directory
+already exists, ask the user to overwrite or rename — never silently overwrite.
+
+Confirm before proceeding. Save inputs to memory if persistent.
 
 ---
 
@@ -82,7 +102,11 @@ Recommended dispatch:
 
 ## Phase 4: Set up the web viewer
 
-Copy the **entire `templates/web/` directory** to the output. Then customize:
+All generated output for this version — `index.html`, every `.md` file,
+and the `web/` directory — goes into the **version subdirectory `v<x>/`**,
+not the repo root. Copy `templates/web/` (including `web/js/versions.js`)
+into `v<x>/web/`, and copy `templates/index.html` into `v<x>/index.html`.
+Then customize:
 
 1. **`web/js/chapters.js`** (the only JS file requiring per-project edits — all other
    `web/js/*.js` import the constants below, so do **not** hardcode the project name anywhere else):
@@ -105,7 +129,7 @@ Copy the **entire `templates/web/` directory** to the output. Then customize:
 4. **`web/serve.sh`**: generic, no edit needed — only touch it to change the default port if you
    want multiple wikis running concurrently
 
-5. **Top-level `index.html`** is the entry point. Test: `cd <output> && python3 -m http.server 8765` then visit `http://localhost:8765/`
+5. **The repo-root `index.html` (the version selector, from `templates/version-index.html`)** is the entry point. Test: `cd <output> && python3 -m http.server 8765` then visit `http://localhost:8765/`
 
 ---
 
@@ -135,15 +159,55 @@ Plus a FAQ section (10-15 common questions) and an environment-variables / commo
 
 ---
 
-## Phase 7: Publish
+## Phase 7: Publish (versioned)
 
-- `README.md`: use `templates/readme.md.tmpl` as starting point. Fill placeholders.
-- `LICENSE`: copy `templates/license.tmpl` (MIT).
-- `.gitignore`: copy `templates/gitignore.tmpl`.
+The repo root holds the version selector + manifest; each version lives
+in its own `v<x>/`. See `reference/versioning.md`.
+
+### Fresh mode
+
+- `v<x>/`: the full wiki built in Phases 3-6.
+- Top-level `index.html`: copy `templates/version-index.html`, replace `{{PROJECT_NAME}}`.
+- Top-level `selector.css`: copy `templates/selector.css` (no edits).
+- Top-level `versions.json`: copy `templates/versions.json`, fill the single entry (`latest: true`).
+- `README.md`: from `templates/readme.md.tmpl`; `LICENSE` from `templates/license.tmpl`; `.gitignore` from `templates/gitignore.tmpl`.
 - `git init -b main && git add -A && git commit -m "initial release"`
-- Push to user's GitHub repo (confirm before pushing).
-- **Enable GitHub Pages** via `gh api -X POST /repos/<owner>/<repo>/pages -f "source[branch]=main" -f "source[path]=/"`
+- Push to the user's GitHub repo (confirm before pushing).
+- **Enable GitHub Pages**: `gh api -X POST /repos/<owner>/<repo>/pages -f "source[branch]=main" -f "source[path]=/"`
 - Live URL: `https://<owner>.github.io/<repo>/`
+
+### Append mode
+
+- Add the new `v<x>/` directory.
+- Edit `versions.json`: push the new entry to the **head** of the `versions`
+  array, set its `latest` to `true`, and flip every other entry's `latest` to `false`.
+- Do **not** touch the top-level `index.html` / `selector.css` — they are
+  static and driven by `versions.json`.
+- `git add -A && git commit -m "add wiki for <version>"` and push (confirm first).
+
+### Migrate mode
+
+Before any file move, **tell the user** which directory the old wiki will
+move into and **get confirmation**. Then:
+
+- Read the old `web/js/chapters.js` (`ANALYZED_TAG` / `ANALYZED_COMMIT` /
+  `ANALYZED_DATE` / `PROJECT_NAME` / `PROJECT_GITHUB_REPO`) and derive the
+  migrated version's directory name.
+- `git mv` the root-level `index.html`, all `.md`, and `web/` into
+  `v<derived>/`. Keep `README.md` / `LICENSE` / `.gitignore` at the root.
+- Inject the version dropdown into `v<derived>/`: copy in
+  `web/js/versions.js`, add the `<select id="version-switcher">` to its
+  `index.html` topbar, add the import + `initVersionSwitcher()` call to its
+  `web/js/app.js`, and add the `.version-switcher` rule to its
+  `web/css/style.css`. Also patch its `web/js/chapters.js` to the
+  version-aware `STORAGE_PREFIX` block (adds `getCurrentVersionDir`, which
+  the injected `versions.js` imports — required, or the migrated viewer
+  breaks on startup). Do not touch chapter `.md` content.
+- Write the top-level `index.html`, `selector.css`, and `versions.json`
+  (single entry = the migrated version).
+- Then proceed exactly as **append mode** to add this run's new version.
+
+See `reference/versioning.md` for the full naming rule and error handling.
 
 ---
 
@@ -169,6 +233,7 @@ Plus a FAQ section (10-15 common questions) and an environment-variables / commo
 - `reference/trace-tour-design.md` — how to pick a trace target + step list
 - `reference/chapter-planning.md` — how to cut any codebase into ~12 chapters
 - `reference/workflow.md` — complete step-by-step
+- `reference/versioning.md` — multi-version layout, naming rule, fresh/append/migrate modes
 - `templates/svg-style-guide.md` — colors, conventions, naming for figures
 - `templates/chapter-prompt.md` — agent prompt for reference chapter generation
 - `templates/tour-step-prompt.md` — agent prompt for tour step generation
