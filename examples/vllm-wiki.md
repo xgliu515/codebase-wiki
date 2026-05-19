@@ -2,8 +2,8 @@
 
 The reference implementation that this skill was extracted from.
 
-**Live**: <https://xgliu515.github.io/vllm-wiki/>
-**Source**: <https://github.com/xgliu515/vllm-wiki>
+**Live**: <https://xgliu515.github.io/codebase-wikis/vllm/>
+**Source**: <https://github.com/xgliu515/codebase-wikis/tree/main/vllm>
 
 ## Scope
 

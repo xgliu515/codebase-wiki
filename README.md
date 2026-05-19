@@ -9,7 +9,7 @@ Produces:
 - **Interactive web viewer**: sidebar nav, glossary panel with recursive expansion, full-text search, GitHub deep-links locked to a specific commit
 - **GitHub Pages ready**: one-command deploy
 
-The methodology was developed and battle-tested while building [xgliu515/vllm-wiki](https://github.com/xgliu515/vllm-wiki) — see it for what the output looks like.
+The methodology was developed and battle-tested while building wikis for vLLM and other projects — see [xgliu515/codebase-wikis](https://xgliu515.github.io/codebase-wikis/) for what the output looks like.
 
 ## Install
 
