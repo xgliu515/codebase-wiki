@@ -60,7 +60,7 @@ export function renderChapterList(currentChapterId) {
     if (hasAddenda) {
       html += `<div class="ch-row">`;
       html += `<a class="${classes.join(' ')}" href="#/${c.id}"><span class="ch-num">${c.num}</span>${c.title}</a>`;
-      html += `<button class="ch-toggle" type="button" data-toggle="${escapeAttr(c.id)}" aria-label="展开/收起">${isExpanded ? '▾' : '▸'}</button>`;
+      html += `<button class="ch-toggle" type="button" data-toggle="${escapeAttr(c.id)}" aria-label="展开/收起" aria-expanded="${isExpanded ? 'true' : 'false'}">${isExpanded ? '▾' : '▸'}</button>`;
       html += `</div>`;
       html += `<div class="ch-children" data-children-of="${escapeAttr(c.id)}"${isExpanded ? '' : ' hidden'}>`;
       for (const a of c.addenda) {
@@ -81,17 +81,19 @@ export function renderChapterList(currentChapterId) {
       e.preventDefault();
       e.stopPropagation();
       const id = btn.dataset.toggle;
-      const children = list.querySelector(`.ch-children[data-children-of="${CSS.escape(id)}"]`);
+      const children = btn.closest('.ch-row')?.nextElementSibling;
       if (!children) return;
       const set = loadExpanded();
       if (set.has(id)) {
         set.delete(id);
         children.hidden = true;
         btn.textContent = '▸';
+        btn.setAttribute('aria-expanded', 'false');
       } else {
         set.add(id);
         children.hidden = false;
         btn.textContent = '▾';
+        btn.setAttribute('aria-expanded', 'true');
       }
       saveExpanded(set);
     });
