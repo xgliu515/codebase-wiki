@@ -42,7 +42,7 @@ const FLATTENED_CHAPTERS = CHAPTERS.flatMap(c => {
   const entries = [c];
   if (Array.isArray(c.addenda)) {
     for (const a of c.addenda) {
-      entries.push({ ...a, parentId: c.id, num: c.num });
+      entries.push({ ...a, parentId: c.id, num: a.id.match(/^(\d+[a-z]?)/)?.[1] ?? c.num });
     }
   }
   return entries;
