@@ -15,6 +15,13 @@ export const CHAPTERS = [
     desc: '...',
     layers: [] },
   // ... add 10-15 entries
+  // 可选 addenda 字段（由 Q&A flow 自动维护，手工不需要写）:
+  // { id: '03-scheduler', num: '03', title: 'Scheduler', desc: '...', layers: [2],
+  //   addenda: [
+  //     { id: '03a-fork-join-strategy', title: 'Fork-join 调度策略',
+  //       question: '当请求被拆成多片并行调度时,合并阶段怎么处理?' },
+  //   ]
+  // },
   { id: '12-glossary-and-faq',       num: '12', title: '术语表与 FAQ',
     desc: '术语、FAQ、环境变量、命令速查',
     layers: [] },
@@ -29,8 +36,18 @@ export const TOURS = [
 
 export const TOUR_BY_ID = Object.fromEntries(TOURS.map(t => [t.id, t]));
 
-// 所有文档（章节 + tour），用于路由查找和搜索
-export const ALL_DOCS = [...CHAPTERS, ...TOURS];
+// 所有文档（章节 + addenda + tour），用于路由查找和搜索。
+// addenda 被平铺进 ALL_DOCS，每个 addendum 项额外带 parentId，便于内容渲染时回链。
+const FLATTENED_CHAPTERS = CHAPTERS.flatMap(c => {
+  const entries = [c];
+  if (Array.isArray(c.addenda)) {
+    for (const a of c.addenda) {
+      entries.push({ ...a, parentId: c.id, num: a.id.match(/^(\d+[a-z]?)/)?.[1] ?? c.num });
+    }
+  }
+  return entries;
+});
+export const ALL_DOCS = [...FLATTENED_CHAPTERS, ...TOURS];
 export const CHAPTER_BY_ID = Object.fromEntries(ALL_DOCS.map(c => [c.id, c]));
 
 // =========================================================

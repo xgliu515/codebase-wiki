@@ -240,6 +240,61 @@ See `reference/monorepo.md` for full details and error handling.
 
 ---
 
+## Q&A addenda flow
+
+To add focused deep-dives to an already-generated wiki (mono-repo only),
+run the **Q&A addenda flow** — a separate entry mode peer to
+new-monorepo / new-project / append-version (with import as its own
+peer entry point). Between user input and the final `git push` decision
+the flow is fully autonomous.
+
+For each Q&A run:
+
+1. **Phase 0 — locate target + source**: in a single message, ask for
+   the target wiki path `<mono>/<project>/<version>/`, the source-code
+   repo path, and a batch of questions (paste or `questions.md`). Read
+   the target's `web/js/chapters.js` to extract `PROJECT_GITHUB_REPO`,
+   `ANALYZED_COMMIT`, and `CHAPTERS` (the latter feeds Phase 1
+   classification). Verify the commit is reachable via
+   `git -C <src> rev-parse <ANALYZED_COMMIT>` — **do not** auto-fetch.
+   Read source files via `git -C <src> show <ANALYZED_COMMIT>:<path>`
+   (no `cd`, no `checkout`).
+
+2. **Phase 1 — auto-classify**: one LLM call maps each question to a
+   parent chapter (`CHAPTERS` entries whose `id` does not match
+   `/glossary/i`). Unmatched questions fall back to the chapter with
+   the lowest `num` value, with a prepended note in the addendum.
+   Print the assignment table; do **not** confirm with the user.
+
+3. **Phase 2 — dispatch agents**: one agent per question, 5-6 in
+   parallel via the dispatching-parallel-agents skill, prompted from
+   `templates/addendum-prompt.md`. Output path
+   `<target>/<NN><letter>-<slug>.md`. Same quality bar as
+   `templates/chapter-prompt.md` — verifiable `file:line` refs, 200-500
+   lines, no H1, no `## 延伸阅读` footer.
+
+4. **Phase 3 — wire up**: append `- [...](./...)` to parent chapter's
+   `## 延伸阅读 / Addenda` section (idempotent by link target); push
+   `{id, title, question}` into the parent chapter's `addenda` array in
+   `web/js/chapters.js` (idempotent by id). No viewer code changes —
+   the templates already support `addenda`.
+
+5. **Phase 4 — commit + push**: from the mono-repo root,
+   `git add -A && git commit -m "Add N addenda for <project>/<version>"`.
+   Ask the user before `git push` — the only blocking confirmation.
+
+The web viewer code in `templates/web/` already supports the `addenda`
+field: `sidebar.js` renders nested toggles, `content.js` renders an
+addendum banner at the top of each addendum page, and `chapters.js`
+flattens addenda into `ALL_DOCS` so routing / search / `j-k` navigation
+pick them up. Existing wikis with no `addenda` field degrade to the
+original flat sidebar — no migration needed.
+
+See `reference/qa-addenda-flow.md` for the full flow, file-naming rule,
+idempotency contract, and error handling matrix.
+
+---
+
 ## Important behaviors
 
 - **Problem-first, no bare conclusions**: Always explain by problem → naive attempt → why fails → actual design. Never start with "X works like this:".
@@ -264,7 +319,9 @@ See `reference/monorepo.md` for full details and error handling.
 - `reference/workflow.md` — complete step-by-step
 - `reference/monorepo.md` — three-level mono-repo layout, run modes, import flow
 - `reference/versioning.md` — the version layer: naming rule, versions.json, version selector
+- `reference/qa-addenda-flow.md` — Q&A addenda flow: phases, file naming, idempotency, errors
 - `templates/svg-style-guide.md` — colors, conventions, naming for figures
 - `templates/chapter-prompt.md` — agent prompt for reference chapter generation
 - `templates/tour-step-prompt.md` — agent prompt for tour step generation
+- `templates/addendum-prompt.md` — agent prompt for single-addendum generation
 - `examples/vllm-wiki.md` — pointer to the reference implementation at github.com/xgliu515/vllm-wiki
