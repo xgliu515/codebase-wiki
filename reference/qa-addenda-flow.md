@@ -4,8 +4,9 @@ This flow lets a user ask a batch of questions about an already-generated
 wiki and have the answers land as new markdown files attached to the
 right chapters. It runs entirely against an existing
 `<mono-repo>/<project>/<version>/` directory and the source code at the
-wiki's locked `ANALYZED_COMMIT`. The flow is the fourth skill entry mode,
-peer to new-monorepo / new-project / append-version / import.
+wiki's locked `ANALYZED_COMMIT`. The flow is a separate skill entry mode, peer to new-monorepo /
+new-project / append-version (the import flow is its own peer entry
+point).
 
 For the design rationale and full spec see
 `docs/specs/2026-05-20-codebase-wiki-qa-addenda-design.md`.
@@ -24,7 +25,7 @@ generation, parent-chapter wiring, `chapters.js` update, local
 philosophy (see memory `project_codebase_wiki_low_friction.md` in the
 parent project memory).
 
-## The four phases
+## The five phases
 
 ### Phase 0: locate target wiki + source code
 
@@ -64,9 +65,10 @@ In the main conversation (no agent dispatch; lightweight):
   glossary is structured data, not a free-form chapter).
 - Ask the LLM to output a mapping `question_index → chapter_id` for the
   whole batch in one shot (one LLM call, all questions).
-- If the LLM can't match a question to any chapter, fall back to
-  `01-architecture-overview` and prepend a note to that addendum:
-  `_本问题未匹配到具体章节,挂在架构总览之下_`.
+- If the LLM can't match a question to any chapter, fall back to the
+  chapter with the lowest `num` value in CHAPTERS (typically the
+  architecture-overview chapter) and prepend a note to that addendum:
+  `_本问题未匹配到具体章节,挂在<parent-title>之下_`.
 
 Print the resulting assignment table for visibility — **do not** ask the
 user to confirm. Move on.
@@ -157,7 +159,7 @@ The flow is safe to re-run with the same inputs:
 | not in mono-repo | no ancestor `projects.json` | bail with "Q&A serves mono-repo wikis only" |
 | `chapters.js` has unfilled placeholders | regex `\{\{[A-Z_]+\}\}` | bail with "wiki not finalized" |
 | commit unreachable in source | `git rev-parse` non-zero | bail with "run `git fetch` and retry" |
-| LLM can't match question to chapter | classification fallback | mount under `01-...`, prepend note |
+| LLM can't match question to chapter | classification fallback | mount under lowest-num chapter, prepend note |
 | Agent produces no file | post-dispatch check | skip from commit, log to `.qa-failed.log` |
 | Agent produces < 50 lines or 0 refs | post-dispatch check | same — skip + log |
 | `git commit` fails (pre-commit hook) | non-zero exit | leave working tree alone, surface error to user |
