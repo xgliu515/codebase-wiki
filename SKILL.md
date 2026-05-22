@@ -250,11 +250,12 @@ the flow is fully autonomous.
 
 For each Q&A run:
 
-1. **Phase 0 — locate target + source**: ask for the target wiki path
-   `<mono>/<project>/<version>/`, the source-code repo path, and a
-   batch of questions (paste or `questions.md`). Read the target's
-   `web/js/chapters.js` to extract `PROJECT_GITHUB_REPO` and
-   `ANALYZED_COMMIT`. Verify the commit is reachable via
+1. **Phase 0 — locate target + source**: in a single message, ask for
+   the target wiki path `<mono>/<project>/<version>/`, the source-code
+   repo path, and a batch of questions (paste or `questions.md`). Read
+   the target's `web/js/chapters.js` to extract `PROJECT_GITHUB_REPO`,
+   `ANALYZED_COMMIT`, and `CHAPTERS` (the latter feeds Phase 1
+   classification). Verify the commit is reachable via
    `git -C <src> rev-parse <ANALYZED_COMMIT>` — **do not** auto-fetch.
    Read source files via `git -C <src> show <ANALYZED_COMMIT>:<path>`
    (no `cd`, no `checkout`).
