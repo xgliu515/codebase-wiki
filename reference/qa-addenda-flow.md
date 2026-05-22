@@ -102,9 +102,10 @@ consistent.
    section if absent; under it append `- [<addendum title>](./<output basename>) —— <truncated question>`. Idempotent: use the link target
    as dedup key.
 2. **`<target>/web/js/chapters.js`**: locate the parent chapter object
-   in the `CHAPTERS` array; push `{id, title, question}` into its
+   in the `CHAPTERS` array; push the full addendum record into its
    `addenda` array (create the array if absent). Idempotent: use `id`
-   as dedup key. Preserve all surrounding code untouched.
+   as dedup key. Preserve all surrounding code untouched. See
+   "Persisted addendum metadata" below for the field list.
 3. **No viewer code changes**. The template-level `sidebar.js` /
    `content.js` / `style.css` already render `addenda` and the banner;
    wikis without `addenda` degrade to the original flat sidebar.
@@ -140,6 +141,37 @@ If 26 addenda already exist for one chapter, error out and tell the
 user to either merge some addenda back into the parent or split the
 parent. Reaching `z` is not expected in practice.
 
+## Persisted addendum metadata
+
+Every addendum record (whether stored in `chapters.js` addenda arrays
+or in `.qa-history.jsonl` for failed ones) carries the following fields.
+The schema is **append-only**: future fields may be added; never remove
+or rename existing ones.
+
+| Field | Required | Purpose |
+|-------|----------|---------|
+| `id` | yes | filename basename + routing id (`<NN><letter>-<slug>`) |
+| `title` | yes | display name in sidebar nesting + parent's "延伸阅读" link |
+| `question` | yes | original user question text, preserved verbatim — the load-bearing signal for the future feedback-loop generation (inject these into chapter-prompt when regenerating chapters or appending a new version) |
+| `asked_at` | yes | ISO date `YYYY-MM-DD` when processed — survives rebase / squash where git timestamps can be lost |
+| `classification` | yes | `'matched'` if Phase 1 assigned a parent confidently, or `'fallback'` if the question didn't fit any chapter and was mounted on the lowest-num chapter — signals topics that may indicate poor chapter boundaries |
+
+In addition, **questions whose agents fail** (no file produced, < 50
+lines, or 0 file:line refs) are appended to `<target>/.qa-history.jsonl`
+as JSONL records — one JSON object per line, **tracked in git** (NOT
+gitignored). Each failed record has the schema above plus:
+
+| Field | Required | Purpose |
+|-------|----------|---------|
+| `status` | yes | `'failed'` (only value for now; reserved for future statuses) |
+| `reason` | yes | short string, e.g. `'no file produced'` / `'< 50 lines'` / `'0 file:line refs'` |
+| `parent_chapter_id` | yes | the chapter the question was classified to (so feedback-loop generation knows where to inject the question even though no answer was written) |
+
+Why track failures: questions the user asked but we couldn't answer are
+**the most valuable signal** for the future feedback-loop generation —
+they're exactly the topics that should be reinforced when chapters get
+regenerated. Losing them to a `.gitignore`'d log would break the loop.
+
 ## Idempotency and re-runs
 
 The flow is safe to re-run with the same inputs:
@@ -148,8 +180,10 @@ The flow is safe to re-run with the same inputs:
 - Parent's `## 延伸阅读`: dedup by link target — same link won't be
   appended twice.
 - `chapters.js` `addenda` array: dedup by addendum `id`.
-- `.qa-failed.log` (if any) records questions whose agents failed.
-  This file is in `.gitignore` (add the rule on first failure).
+- `.qa-history.jsonl` failure records: dedup by `(question, parent_chapter_id)`
+  pair — re-running the same failing question doesn't append duplicate
+  rows. This file is **tracked in git** so failure signals are shared
+  across machines.
 
 ## Error handling
 
@@ -160,8 +194,8 @@ The flow is safe to re-run with the same inputs:
 | `chapters.js` has unfilled placeholders | regex `\{\{[A-Z_]+\}\}` | bail with "wiki not finalized" |
 | commit unreachable in source | `git rev-parse` non-zero | bail with "run `git fetch` and retry" |
 | LLM can't match question to chapter | classification fallback | mount under lowest-num chapter, prepend note |
-| Agent produces no file | post-dispatch check | skip from commit, log to `.qa-failed.log` |
-| Agent produces < 50 lines or 0 refs | post-dispatch check | same — skip + log |
+| Agent produces no file | post-dispatch check | skip from commit, append failure record to `<target>/.qa-history.jsonl` |
+| Agent produces < 50 lines or 0 refs | post-dispatch check | same — skip + append failure record |
 | `git commit` fails (pre-commit hook) | non-zero exit | leave working tree alone, surface error to user |
 
 ## What this flow does NOT do

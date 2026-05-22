@@ -18,8 +18,11 @@ export const CHAPTERS = [
   // 可选 addenda 字段（由 Q&A flow 自动维护，手工不需要写）:
   // { id: '03-scheduler', num: '03', title: 'Scheduler', desc: '...', layers: [2],
   //   addenda: [
-  //     { id: '03a-fork-join-strategy', title: 'Fork-join 调度策略',
-  //       question: '当请求被拆成多片并行调度时,合并阶段怎么处理?' },
+  //     { id: '03a-fork-join-strategy',
+  //       title: 'Fork-join 调度策略',
+  //       question: '当请求被拆成多片并行调度时,合并阶段怎么处理?',
+  //       asked_at: '2026-05-21',          // ISO date, 与 git 时间戳脱钩
+  //       classification: 'matched' },     // 'matched' | 'fallback'
   //   ]
   // },
   { id: '12-glossary-and-faq',       num: '12', title: '术语表与 FAQ',
