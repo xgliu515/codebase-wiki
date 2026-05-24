@@ -222,7 +222,7 @@ export function enhanceWithGlossary(container) {
       if (VIEWED.has(m.key)) span.classList.add('viewed');
       span.dataset.term = m.key;
       span.textContent = text.slice(m.start, m.end);
-      span.title = `点击查看「${m.key}」的解释`;
+      span.title = T.gloss_hover_tooltip(m.key);
       frag.appendChild(span);
       cursor = m.end;
     }
@@ -362,7 +362,7 @@ function openTerm(key, fromHistory) {
     a.className = 'file-ref';
     a.href = makeCodeURL(ref.path, ref.line);
     a.textContent = code.textContent;
-    a.title = `打开 ${ref.path}${ref.line ? ':' + ref.line : ''}`;
+    a.title = T.gloss_open_file(`${ref.path}${ref.line ? ':' + ref.line : ''}`);
     code.replaceWith(a);
   });
 
@@ -421,5 +421,5 @@ function saveViewed() {
 
 function updateCounter() {
   const el = document.querySelector('.gloss-counter');
-  if (el) el.textContent = `已查看 ${VIEWED.size} / ${TERMS.size} 条术语`;
+  if (el) el.textContent = T.gloss_viewed_count(VIEWED.size, TERMS.size);
 }

@@ -97,6 +97,9 @@ export const STRINGS = {
     gloss_english_label: '英文原名',
     gloss_chinese_label: '中文译名',
     gloss_source_label: '代码位置',
+    gloss_hover_tooltip: (termKey) => `点击查看「${termKey}」的解释`,
+    gloss_open_file: (path) => `打开 ${path}`,
+    gloss_viewed_count: (viewed, total) => `已查看 ${viewed} / ${total} 条术语`,
   },
 
   en: {
@@ -182,6 +185,9 @@ export const STRINGS = {
     gloss_english_label: 'Original name',
     gloss_chinese_label: '',           // empty: hides the row in English mode
     gloss_source_label: 'Source',
+    gloss_hover_tooltip: (termKey) => `View definition of "${termKey}"`,
+    gloss_open_file: (path) => `Open ${path}`,
+    gloss_viewed_count: (viewed, total) => `Viewed ${viewed} / ${total} terms`,
   },
 };
 
