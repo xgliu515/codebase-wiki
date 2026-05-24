@@ -143,3 +143,11 @@ For each source wiki repo:
 - Selector page or viewer fails to fetch its manifest → that dropdown / list silently degrades; the rest is unaffected.
 - Leftover `<project>/selector.css` from a versioned source → delete on import; the version selector uses `../selector.css`.
 - Imported source repos are always kept, never deleted.
+
+## Language-mixed mono-repo
+
+A mono-repo may contain both `zh-CN` and `en` projects. Each project's `<html lang>` is set independently when that project is scaffolded — the root mono-repo `<html lang>` (in `project-index.html`) is fixed at mono-repo creation time and defaults to `zh-CN`. If you want the project picker page itself in English, manually edit `project-index.html` after scaffold.
+
+`projects.json` has no `language` field — language information is implicit in each project's own `index.html`. The viewer's project switcher works the same for both languages.
+
+When importing an existing standalone wiki into a mono-repo, the imported wiki keeps whatever `<html lang>` it shipped with. No automatic upgrade to the i18n strings.js system — additive injection only, per the rule in this file.
