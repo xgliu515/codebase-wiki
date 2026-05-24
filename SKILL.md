@@ -117,7 +117,9 @@ mono-repo. Copy `templates/web/` (including `web/js/versions.js`) into
 `<project>/<version>/index.html`. Then customize:
 
 1. **`web/js/chapters.js`** (the only JS file requiring per-project edits — all other
-   `web/js/*.js` import the constants below, so do **not** hardcode the project name anywhere else):
+   `web/js/*.js` import the constants below, so do **not** hardcode the project name anywhere else).
+   **Edit ONLY the constants in the upper section** (PROJECT_NAME / PROJECT_GITHUB_REPO / ANALYZED_* / PROJECT_TAGLINE / PROJECT_FOCUS / TRACE_TARGET / CHAPTERS / TOURS).
+   **Do NOT remove or rewrite the helper functions in the lower half** (`getCurrentVersionDir`, `getCurrentProjectDir`, `STORAGE_PREFIX` IIFE, `REPO_ROOT_KEY`, `getRepoMode`, `getRepoRoot`, `setRepoRoot`) — `utils.js` / `app.js` / `sidebar.js` / `glossary.js` import them and the viewer will fail at module load (`does not provide an export named 'getRepoMode'`) if they're truncated or simplified:
    - `PROJECT_NAME` → friendly name, e.g., `vLLM` (used in page titles, home page, GitHub link labels)
    - `PROJECT_GITHUB_REPO` → e.g., `vllm-project/vllm`
    - `ANALYZED_COMMIT` → e.g., `086749736`
@@ -150,11 +152,20 @@ mono-repo. Copy `templates/web/` (including `web/js/versions.js`) into
 
 7. **Scaffold-time verification — run before claiming Phase 4 complete**:
    ```bash
-   # No unsubstituted placeholders in user-facing files
+   # (a) No unsubstituted placeholders in user-facing files
    grep -rE '\{\{[A-Z_]+\}\}' <output>/<project>/<version>/index.html <output>/<project>/<version>/README.md
-   # Expected: zero matches. If any remain, the substitution was incomplete.
+   # Expected: zero matches.
+
+   # (b) chapters.js still exports all the helpers the viewer needs
+   node --check <output>/<project>/<version>/web/js/chapters.js
+   grep -cE '^export (function (getCurrentVersionDir|getCurrentProjectDir|getRepoMode|getRepoRoot|setRepoRoot)|const STORAGE_PREFIX)' <output>/<project>/<version>/web/js/chapters.js
+   # Expected: 6  (5 functions + STORAGE_PREFIX). If less, the agent truncated the lower half — restore from templates/web/js/chapters.js.
+
+   # (c) All web/js files present
+   ls <output>/<project>/<version>/web/js/ | sort
+   # Expected: app.js architecture.js chapters.js content.js diagrams.js glossary.js search.js sidebar.js strings.js utils.js versions.js
    ```
-   Common miss: `{{PROJECT_NAME}}` in the brand `<a>` tag (line ~22 of index.html), `{{LANG}}` in `<html>` (line ~10), `{{TITLE_SUFFIX}}` in `<title>` (line ~14). Re-substitute and re-verify.
+   Common misses: `{{PROJECT_NAME}}` in the brand `<a>` tag (line ~22 of index.html), `{{LANG}}` in `<html>` (line ~10), `{{TITLE_SUFFIX}}` in `<title>` (line ~14), truncated `chapters.js` helpers, missing `versions.js` or `strings.js`. Re-substitute / re-copy and re-verify.
 
 ---
 
