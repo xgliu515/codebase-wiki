@@ -7,6 +7,7 @@
 import { marked } from 'https://cdn.jsdelivr.net/npm/marked@15.0.4/lib/marked.esm.js';
 import { parseFileRef, makeCodeURL, escapeHTML } from './utils.js';
 import { STORAGE_PREFIX } from './chapters.js';
+import { T } from './strings.js';
 
 const STORAGE_KEY = `${STORAGE_PREFIX}-viewed-terms`;
 
@@ -65,13 +66,13 @@ function parseGlossary(md) {
     let chineseName = '';
     let englishName = '';
     for (const line of body.split('\n')) {
-      const m = line.match(/^-\s*(英文原名|中文译名|定义|代码位置)[：:]\s*(.*)$/);
+      const m = line.match(/^-\s*(英文原名|中文译名|定义|代码位置|Original name|Definition|Source)[：:]\s*(.*)$/);
       if (m) {
         const [, key, val] = m;
-        if (key === '定义') definition = val;
-        else if (key === '代码位置') codeLocation = val;
+        if (key === '定义' || key === 'Definition') definition = val;
+        else if (key === '代码位置' || key === 'Source') codeLocation = val;
         else if (key === '中文译名') chineseName = val;
-        else if (key === '英文原名') englishName = val;
+        else if (key === '英文原名' || key === 'Original name') englishName = val;
       } else if (definition && line.trim() && !line.startsWith('- ')) {
         // 定义可能跨行
         definition += ' ' + line.trim();
@@ -248,14 +249,14 @@ function installPanel() {
   panel.hidden = true;
   panel.innerHTML = `
     <header class="gloss-panel-head">
-      <button class="gloss-back" title="返回上一个 (←)" hidden>‹ 返回</button>
+      <button class="gloss-back" title="${T.gloss_back_title}" hidden>${T.gloss_back_btn}</button>
       <span class="gloss-trail"></span>
-      <button class="gloss-close" title="关闭 (Esc)">×</button>
+      <button class="gloss-close" title="${T.gloss_close_title}">×</button>
     </header>
     <div class="gloss-panel-body"></div>
     <footer class="gloss-panel-foot">
       <span class="gloss-counter"></span>
-      <button class="gloss-clear-viewed" title="清除本地"已查看"记录">重置</button>
+      <button class="gloss-clear-viewed" title="${T.gloss_reset_title}">${T.gloss_reset_btn}</button>
     </footer>
   `;
   document.body.appendChild(panel);
@@ -334,16 +335,16 @@ function openTerm(key, fromHistory) {
   });
 
   // 渲染定义为 HTML
-  const defHtml = marked.parse(term.definition || '*（无定义）*');
+  const defHtml = marked.parse(term.definition || T.gloss_no_definition);
   const locHtml = term.codeLocation ? marked.parseInline(term.codeLocation) : '';
   body.innerHTML = `
     <h2 class="gloss-title">${escapeHTML(term.primary)}</h2>
     <div class="gloss-aliases">
-      ${term.chineseName ? `<div><span class="gloss-meta">中文译名</span>${escapeHTML(term.chineseName)}</div>` : ''}
-      ${term.englishName && term.englishName !== term.primary ? `<div><span class="gloss-meta">英文原名</span><code>${escapeHTML(term.englishName)}</code></div>` : ''}
+      ${term.chineseName && T.gloss_chinese_label ? `<div><span class="gloss-meta">${T.gloss_chinese_label}</span>${escapeHTML(term.chineseName)}</div>` : ''}
+      ${term.englishName && term.englishName !== term.primary ? `<div><span class="gloss-meta">${T.gloss_english_label}</span><code>${escapeHTML(term.englishName)}</code></div>` : ''}
     </div>
     <div class="gloss-definition md">${defHtml}</div>
-    ${locHtml ? `<div class="gloss-location md"><span class="gloss-meta">代码位置</span>${locHtml}</div>` : ''}
+    ${locHtml ? `<div class="gloss-location md"><span class="gloss-meta">${T.gloss_source_label}</span>${locHtml}</div>` : ''}
     <div class="gloss-jump">
       <a href="#/12-glossary-and-faq/${term.slug}">在术语表里查看完整条目 →</a>
     </div>
