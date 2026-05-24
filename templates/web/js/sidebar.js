@@ -1,5 +1,6 @@
 import { CHAPTERS, TOURS, CHAPTER_BY_ID, STORAGE_PREFIX } from './chapters.js';
 import { throttle } from './utils.js';
+import { T } from './strings.js';
 
 const EXPANDED_KEY = `${STORAGE_PREFIX}-sidebar-expanded`;
 
@@ -34,11 +35,11 @@ export function renderChapterList(currentChapterId) {
   if (activeParentId) expanded.add(activeParentId);
 
   // 首页
-  html += `<a class="ch-item ${!currentChapterId ? 'active' : ''}" href="#/" style="margin-bottom:6px"><span class="ch-num">★</span>首页</a>`;
+  html += `<a class="ch-item ${!currentChapterId ? 'active' : ''}" href="#/" style="margin-bottom:6px"><span class="ch-num">★</span>${T.sidebar_home}</a>`;
 
   // Tour 段
   if (TOURS && TOURS.length) {
-    html += `<div class="sidebar-head">单请求 Trace 导览</div>`;
+    html += `<div class="sidebar-head">${T.sidebar_tour_head}</div>`;
     for (const t of TOURS) {
       const active = t.id === currentChapterId ? 'active' : '';
       html += `<a class="ch-item ${active}" href="#/${t.id}"><span class="ch-num">${t.num}</span>${t.title}</a>`;
@@ -46,7 +47,7 @@ export function renderChapterList(currentChapterId) {
   }
 
   // 参考章节段（支持 addenda 嵌套）
-  html += `<div class="sidebar-head" style="margin-top:14px">参考手册（${CHAPTERS.length} 章）</div>`;
+  html += `<div class="sidebar-head" style="margin-top:14px">${T.sidebar_ref_head(CHAPTERS.length)}</div>`;
   for (const c of CHAPTERS) {
     const hasAddenda = Array.isArray(c.addenda) && c.addenda.length > 0;
     const isActive = c.id === currentChapterId;
@@ -60,7 +61,7 @@ export function renderChapterList(currentChapterId) {
     if (hasAddenda) {
       html += `<div class="ch-row">`;
       html += `<a class="${classes.join(' ')}" href="#/${c.id}"><span class="ch-num">${c.num}</span>${c.title}</a>`;
-      html += `<button class="ch-toggle" type="button" data-toggle="${escapeAttr(c.id)}" aria-label="展开/收起" aria-expanded="${isExpanded ? 'true' : 'false'}">${isExpanded ? '▾' : '▸'}</button>`;
+      html += `<button class="ch-toggle" type="button" data-toggle="${escapeAttr(c.id)}" aria-label="${T.sidebar_toggle_aria}" aria-expanded="${isExpanded ? 'true' : 'false'}">${isExpanded ? '▾' : '▸'}</button>`;
       html += `</div>`;
       html += `<div class="ch-children" data-children-of="${escapeAttr(c.id)}"${isExpanded ? '' : ' hidden'}>`;
       for (const a of c.addenda) {
@@ -103,7 +104,7 @@ export function renderChapterList(currentChapterId) {
 export function renderPageToc(toc, contentEl) {
   const nav = document.getElementById('page-toc');
   if (!toc || toc.length === 0) {
-    nav.innerHTML = `<div style="color:var(--text-faint);font-size:13px;">无目录</div>`;
+    nav.innerHTML = `<div style="color:var(--text-faint);font-size:13px;">${T.toc_empty}</div>`;
     return;
   }
   nav.innerHTML = toc.map(item =>
