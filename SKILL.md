@@ -34,7 +34,7 @@ Ask the user **one question at a time** (no batches):
 1. **Codebase path**: absolute path on disk (used to read source for `file:line` refs)
 2. **Output directory**: the mono-repo path (existing or to-be-created)
 3. **Project name + GitHub repo** (new mono-repo / new project only): e.g., `vllm` + `vllm-project/vllm`
-4. **Wiki language** (new mono-repo / new project only): Chinese (default) / English / bilingual
+4. **LANGUAGE** (new mono-repo / new project only): `zh-CN` (default) | `en`. Drives `<html lang>`, `{{TITLE_SUFFIX}}`, which README/glossary template to copy, and the `{{LANGUAGE}}` value passed to chapter/addendum prompts (`zh-CN` → `简体中文`, `en` → `English`). `bilingual` is no longer offered — pick one. The bilingual `strings.js` ships unmodified for both.
 5. **Lock version**: confirm `git rev-parse --short HEAD` of the codebase as the analyzed commit, or let the user specify a tag
 
 In **new project / append version** mode, read `projects.json` (and the
@@ -97,6 +97,7 @@ Use **parallel agents** (dispatching-parallel-agents skill). For each agent, giv
 - The template (`templates/chapter-prompt.md` or `templates/tour-step-prompt.md`)
 - Strict format rules (8-section template for tour; standard markdown for chapters)
 - Output path
+- The `{{LANGUAGE}}` value: `简体中文` for `zh-CN` LANGUAGE, `English` for `en` LANGUAGE — drives whether the agent writes Chinese or English content
 
 Recommended dispatch:
 - 5-6 agents for chapters (group adjacent chapters per agent)
@@ -131,12 +132,21 @@ mono-repo. Copy `templates/web/` (including `web/js/versions.js`) into
 
 2. **`web/js/architecture.js`**: rewrite the 4-layer SVG to match this project's architecture
 
-3. **`index.html`**: replace the `{{PROJECT_NAME}}` placeholders (title + brand) with the project name
+3. **`index.html`** placeholders to substitute at scaffold time:
+   - `{{PROJECT_NAME}}` → project friendly name (title + brand)
+   - `{{LANG}}` → `zh-CN` or `en` (matches Phase 0 LANGUAGE)
+   - `{{TITLE_SUFFIX}}` → `中文参考 Wiki` (zh-CN) or `Wiki` (en)
+   See the comment header at the top of `templates/index.html` for the canonical list.
 
 4. **`web/serve.sh`**: generic, no edit needed — only touch it to change the default port if you
    want multiple wikis running concurrently
 
 5. **The repo-root `index.html` (the project selector, from `templates/project-index.html`)** is the entry point. Test: `cd <output> && python3 -m http.server 8765` then visit `http://localhost:8765/` — project selector → version selector → viewer.
+
+6. **README + glossary chapter template dispatch by LANGUAGE**:
+   - README source: `templates/readme.md.tmpl` if LANGUAGE is `zh-CN`, else `templates/readme.md.en.tmpl`. Copy to `<output>/<project>/<version>/README.md` and substitute placeholders.
+   - Glossary chapter prompt: include `templates/glossary-format.md` (zh-CN) or `templates/glossary-format.en.md` (en) as the format spec sent to the glossary chapter agent.
+   - `templates/web/js/strings.js` is language-agnostic (ships both zh and en) — copy verbatim into `<output>/<project>/<version>/web/js/strings.js`. No edit needed.
 
 ---
 
