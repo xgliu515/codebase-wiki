@@ -28,11 +28,15 @@ The last reference chapter (typically `12-glossary-and-faq.md`) must follow this
 
 ## Parser rules (DO NOT BREAK)
 
-- Each term entry is a `### Heading` followed by 3 bullets in order: **Original name** / **Definition** / **Source**
+- Each term entry is a `### Heading` followed by the three core bullets in order: `Original name` / `Definition` / `Source` (the only fields the runtime parser reads)
+- Label form: either `- Definition: ...` or `- **Definition**: ...` — the parser tolerates `**` wrappers around all four canonical labels (`Original name`, `Definition`, `Source`, plus the Chinese-schema labels)
+- `Code location:` is accepted as a synonym for `Source:` (the runtime maps it to the same field)
+- **Extra bullets** like `- Aliases: ...`, `- See also: ...`, `- Examples: ...` are tolerated — the parser ignores any label it doesn't recognize. Use them freely for human readers; they won't appear in the term popup but render in the chapter body
 - The H3 heading text can have parenthetical alternates: `### Backend (attention backend)` — both "Backend" and "attention backend" become matchable variants
 - Multiple equivalents with slash: `### Guided Decoding / Structured Output` — both become primary terms
 - Abbreviations in parens: `### Data Parallelism (DP)` — both full and abbreviation become variants
 - The Original name field can include backticks for inline code styling
+- The Original name bullet is OPTIONAL when the H3 heading already contains the canonical English name (which is typical for English glossaries — the heading itself is the canonical form)
 
 ## Term selection
 

@@ -31,6 +31,8 @@ The last reference chapter (typically `12-glossary-and-faq.md`) must follow a sp
 ## Parser rules (DO NOT BREAK)
 
 - Each term entry is a `### Heading` followed by 4 bullets in order: 英文原名 / 中文译名 / 定义 / 代码位置
+- Label form: either `- 定义: ...` or `- **定义**: ...` — the parser tolerates `**` wrappers around all four canonical labels
+- **Extra bullets** like `- 别名: ...`, `- 参见: ...`, `- 示例: ...` are tolerated — the parser ignores any label it doesn't recognize. Use freely for human readers; they won't appear in the term popup but render in the chapter body
 - The H3 heading text can have parenthetical alternates: `### Backend（attention backend）` — both "Backend" and "attention backend" become matchable variants
 - Multiple equivalents with slash: `### Guided Decoding / Structured Output` — both become primary terms
 - Abbreviations in parens: `### Data Parallelism (DP)` — both full and abbreviation become variants

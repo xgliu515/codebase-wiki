@@ -148,6 +148,14 @@ mono-repo. Copy `templates/web/` (including `web/js/versions.js`) into
    - Glossary chapter prompt: include `templates/glossary-format.md` (zh-CN) or `templates/glossary-format.en.md` (en) as the format spec sent to the glossary chapter agent.
    - `templates/web/js/strings.js` is language-agnostic (ships both zh and en) — copy verbatim into `<output>/<project>/<version>/web/js/strings.js`. No edit needed.
 
+7. **Scaffold-time verification — run before claiming Phase 4 complete**:
+   ```bash
+   # No unsubstituted placeholders in user-facing files
+   grep -rE '\{\{[A-Z_]+\}\}' <output>/<project>/<version>/index.html <output>/<project>/<version>/README.md
+   # Expected: zero matches. If any remain, the substitution was incomplete.
+   ```
+   Common miss: `{{PROJECT_NAME}}` in the brand `<a>` tag (line ~22 of index.html), `{{LANG}}` in `<html>` (line ~10), `{{TITLE_SUFFIX}}` in `<title>` (line ~14). Re-substitute and re-verify.
+
 ---
 
 ## Phase 5: Add SVG figures (iterative)

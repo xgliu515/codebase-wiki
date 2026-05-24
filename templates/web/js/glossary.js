@@ -66,11 +66,12 @@ function parseGlossary(md) {
     let chineseName = '';
     let englishName = '';
     for (const line of body.split('\n')) {
-      const m = line.match(/^-\s*(英文原名|中文译名|定义|代码位置|Original name|Definition|Source)[：:]\s*(.*)$/);
+      // Accept optional **bold** wrappers around the label and `Code location` as a synonym for `Source`
+      const m = line.match(/^-\s*\*{0,2}(英文原名|中文译名|定义|代码位置|Original name|Definition|Source|Code location)\*{0,2}[：:]\s*(.*)$/);
       if (m) {
         const [, key, val] = m;
         if (key === '定义' || key === 'Definition') definition = val;
-        else if (key === '代码位置' || key === 'Source') codeLocation = val;
+        else if (key === '代码位置' || key === 'Source' || key === 'Code location') codeLocation = val;
         else if (key === '中文译名') chineseName = val;
         else if (key === '英文原名' || key === 'Original name') englishName = val;
       } else if (definition && line.trim() && !line.startsWith('- ')) {
