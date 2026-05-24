@@ -7,6 +7,7 @@ import { initMermaid, setMermaidTheme, initModal, reRenderAllMermaid } from './d
 import { renderArchSVG, playArchAnimation, resetArchAnimation } from './architecture.js';
 import { initGlossary } from './glossary.js';
 import { initVersionSwitcher, initProjectSwitcher } from './versions.js';
+import { T } from './strings.js';
 
 const contentEl = document.getElementById('content');
 
@@ -49,7 +50,7 @@ async function route() {
       document.getElementById('arch-reset-btn')?.addEventListener('click', resetArchAnimation);
     }
     contentEl.scrollTo({ top: 0 });
-    document.title = `${PROJECT_NAME} 中文参考 Wiki`;
+    document.title = `${PROJECT_NAME} ${T.title_suffix}`.trim();
     return;
   }
 
@@ -77,8 +78,8 @@ function gotoChapter(delta) {
   const idx = ALL_DOCS.findIndex(c => c.id === chapterId);
   if (idx < 0) return;
   const next = idx + delta;
-  if (next < 0) { showToast('已经是第一篇'); return; }
-  if (next >= ALL_DOCS.length) { showToast('已经是最后一篇'); return; }
+  if (next < 0) { showToast(T.toast_first); return; }
+  if (next >= ALL_DOCS.length) { showToast(T.toast_last); return; }
   location.hash = buildHash(ALL_DOCS[next].id);
 }
 
@@ -120,6 +121,22 @@ function initKeybindings() {
 // 启动
 // =========================================================
 
+// =========================================================
+// i18n: 把 strings.js 的当前语言表写入 DOM
+// =========================================================
+
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.title = T[el.dataset.i18n];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = T[el.dataset.i18nPlaceholder];
+  });
+  document.querySelectorAll('[data-i18n-text]').forEach(el => {
+    el.textContent = T[el.dataset.i18nText];
+  });
+}
+
 async function main() {
   // 主题初始化
   const savedTheme = localStorage.getItem(`${STORAGE_PREFIX}-theme`)
@@ -127,6 +144,8 @@ async function main() {
   applyTheme(savedTheme);
   initMermaid(savedTheme);
   initModal();
+  // i18n 注入(必须先于读取 DOM 文案的代码)
+  applyI18n();
 
   // 工具栏按钮
   document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
@@ -134,17 +153,11 @@ async function main() {
   document.getElementById('next-chapter').addEventListener('click', () => gotoChapter(1));
   document.getElementById('repo-root-btn').addEventListener('click', () => {
     const cur = getRepoRoot();
-    const mode = cur ? '本地 VSCode' : `GitHub (${PROJECT_NAME}@${ANALYZED_COMMIT})`;
-    const updated = prompt(
-      `当前模式：${mode}\n\n` +
-      `留空（默认）→ 跳到 GitHub 上对应 commit、对应行号\n` +
-      `输入本地 ${PROJECT_NAME} 仓库绝对路径 → 跳到本地 VSCode（需先装好 VSCode）\n\n` +
-      `路径示例：/Users/你的名字/git/<仓库目录>`,
-      cur
-    );
+    const mode = cur ? T.source_mode_local : `GitHub (${PROJECT_NAME}@${ANALYZED_COMMIT})`;
+    const updated = prompt(T.source_mode_prompt(mode, PROJECT_NAME), cur);
     if (updated === null) return;
     setRepoRoot(updated);
-    showToast(updated.trim() ? '已切到本地 VSCode 模式。刷新生效' : '已切到 GitHub 模式。刷新生效');
+    showToast(updated.trim() ? T.source_mode_switched_local : T.source_mode_switched_github);
   });
 
   // 版本切换下拉（无 versions.json 时自动隐藏，不阻塞启动）
@@ -172,5 +185,5 @@ async function main() {
 
 main().catch(err => {
   console.error(err);
-  contentEl.innerHTML = `<div class="md"><h1>启动失败</h1><pre>${err.stack || err.message}</pre></div>`;
+  contentEl.innerHTML = `<div class="md"><h1>${T.err_startup_failed_h1}</h1><pre>${err.stack || err.message}</pre></div>`;
 });

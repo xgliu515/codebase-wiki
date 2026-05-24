@@ -41,6 +41,21 @@
   --shadow-md: 0 4px 24px rgba(0,0,0,0.5);
 }
 
+/* =========================================================
+   English-only typography overrides
+   Only fires when <html lang="en"> (zh path untouched).
+   ========================================================= */
+
+html[lang^="en"] body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI",
+               system-ui, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.6;
+}
+html[lang^="en"] .md { line-height: 1.55; }
+html[lang^="en"] .md h1 { letter-spacing: -0.01em; }
+html[lang^="en"] .md h2 { letter-spacing: -0.005em; }
+html[lang^="en"] .md .mermaid-block::after { content: "Click to expand"; }
+
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {

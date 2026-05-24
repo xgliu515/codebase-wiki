@@ -1,6 +1,7 @@
 import MiniSearch from 'https://cdn.jsdelivr.net/npm/minisearch@7.1.0/+esm';
 import { ALL_DOCS, CHAPTER_BY_ID } from './chapters.js';
 import { debounce, escapeHTML } from './utils.js';
+import { T } from './strings.js';
 
 let mini = null;
 const documents = []; // {id, chapterId, chapterTitle, heading, content, anchor}
@@ -124,7 +125,7 @@ function navigateToHit(h) {
 
 function renderResults(panel, hits, query, activeIdx) {
   if (!hits.length) {
-    panel.innerHTML = `<div style="padding:14px;color:var(--text-faint);">无结果</div>`;
+    panel.innerHTML = `<div style="padding:14px;color:var(--text-faint);">${T.search_no_results}</div>`;
     return;
   }
   const tokens = (query.match(/[一-鿿]|[a-zA-Z0-9_.]+/g) || []).filter(t => t.length > 0);

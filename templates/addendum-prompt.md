@@ -50,7 +50,7 @@ Required placeholders:
 - **{{SRC_REPO_PATH}}**: absolute path on disk to the source code repo (user-supplied in Phase 0).
 - **{{PARENT_CHAPTER_ID}}**: e.g. `03-scheduler`. Selected by Phase 1 auto-classification.
 - **{{PARENT_CHAPTER_MD}}**: the full markdown of the parent chapter, read from `<target>/<PARENT_CHAPTER_ID>.md`.
-- **{{LANGUAGE}}**: same as the wiki (Chinese / English / bilingual); detect from the parent chapter or fall back to "简体中文".
+- **{{LANGUAGE}}**: same as the wiki ("简体中文" / "English" / "bilingual"); supplied from Phase 0 LANGUAGE input (no fallback — value is always explicitly injected by the skill controller).
 - **{{OUTPUT_PATH}}**: `<target>/<NN><letter>-<slug>.md` (see `reference/qa-addenda-flow.md` for naming).
 - **{{QUESTION}}**: the raw user question text.
 

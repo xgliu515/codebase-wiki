@@ -102,3 +102,7 @@ conversion for one wiki:
 - Version dir collision → ask overwrite / rename; never silent overwrite.
 - `versions.json` corrupt or invalid → report and ask the user.
 - Viewer offline (no `versions.json` reachable) → the version dropdown hides itself.
+
+## Cross-language versions
+
+Different versions of the same project may technically use different languages (e.g. v1 in `zh-CN`, v2 in `en`), since each version is self-contained. This is **not recommended** in practice — the version switcher in the topbar will jump between languages, which is jarring. If you migrate a project from Chinese to English, treat it as a fresh project under a new directory rather than a new version of the existing one.
