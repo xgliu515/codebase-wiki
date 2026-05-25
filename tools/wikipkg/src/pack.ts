@@ -1,5 +1,5 @@
-import { readdir } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { mkdir, readdir } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import * as tar from 'tar';
 import { validateWikipkgDir, type ValidationError } from './validate.js';
 
@@ -13,6 +13,8 @@ export async function packWikipkg(dir: string, outPath: string): Promise<PackRes
 
   // Collect top-level entries to pack (excludes nothing — wikipkg dir is already clean)
   const entries = await readdir(dir);
+
+  await mkdir(dirname(resolve(outPath)), { recursive: true });
 
   await tar.create(
     {

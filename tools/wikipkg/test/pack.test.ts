@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { mkdtemp, rm, readdir } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import * as tar from 'tar';
 import { packWikipkg } from '../src/pack.js';
@@ -24,7 +24,7 @@ describe('packWikipkg', () => {
     expect(r.ok).toBe(true);
 
     const extractDir = resolve(workDir, 'extract');
-    await import('node:fs/promises').then((fs) => fs.mkdir(extractDir, { recursive: true }));
+    await mkdir(extractDir, { recursive: true });
     await tar.extract({ file: out, cwd: extractDir });
     const top = await readdir(extractDir);
     expect(top).toContain('manifest.json');
@@ -37,5 +37,11 @@ describe('packWikipkg', () => {
     const out = resolve(workDir, 'bad.tar.gz');
     const r = await packWikipkg(fixtures('invalid-orphan-path'), out);
     expect(r.ok).toBe(false);
+  });
+
+  it('creates output directory if missing', async () => {
+    const nested = resolve(workDir, 'nested/dir/out.wikipkg.tar.gz');
+    const r = await packWikipkg(fixtures('valid'), nested);
+    expect(r.ok).toBe(true);
   });
 });
