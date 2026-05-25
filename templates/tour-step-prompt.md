@@ -5,11 +5,14 @@ Use this template when dispatching an agent to write 1-4 tour steps in parallel.
 ## Template
 
 ```
-你正在为 {{PROJECT_NAME}} 的"单请求 trace 导览"写 N 个步骤。
+你正在为 {{PROJECT_NAME}} 的 trace 导览 "{{TOUR_TITLE}}" 写 N 个步骤。
+
+这条 tour 跟的是 `{{TOUR_TARGET}}` (一个最简请求), 共 {{TOUR_STEP_COUNT}} 步 (从 overview + N 步)。
+本 tour 的 slug 是 `{{TOUR_SLUG}}` — 文件名前缀。
 
 【必读】严格按这两份建立的风格 + 模板写：
-- `{{OUTPUT_DIR}}/tour-00-overview.md`（全局大纲 + N 步速览 + 状态变量表）
-- `{{OUTPUT_DIR}}/tour-XX-...md`（已写好的样品步骤，是要你照搬的 tone 和结构）
+- `{{OUTPUT_DIR}}/tour-{{TOUR_SLUG}}-00-overview.md`（本 tour 大纲 + 步骤速览 + 状态变量表）
+- `{{OUTPUT_DIR}}/tour-{{TOUR_SLUG}}-XX-...md`（同一 tour 已写好的样品步骤）
 
 【源码仓库】{{CODEBASE_PATH}}，锁定 commit {{COMMIT_SHORT}}。
 
@@ -27,7 +30,7 @@ Use this template when dispatching an agent to write 1-4 tour steps in parallel.
 - 每步约 120-200 行
 - 大量 `file:line` 引用
 - 第 5 段如果有合适图示就用 ASCII 画
-- 第 7 段是知识网——必须用 markdown 链接到参考章节对应小节
+- 第 7 段是知识网——必须用 markdown 链接到参考章节对应小节, 也可以链接到本 tour 其他步骤 (见下方 {{TOUR_STEP_LIST}})
 - 终态文档；禁止"我研究了..."、"接下来..."等过程性叙述
 
 ---
@@ -35,7 +38,7 @@ Use this template when dispatching an agent to write 1-4 tour steps in parallel.
 【你要写的步骤】
 
 ## 步骤 NN：{{STEP_TITLE}}
-- 输出文件：`{{OUTPUT_DIR}}/tour-NN-{{SHORT_SLUG}}.md`
+- 输出文件：`{{OUTPUT_DIR}}/tour-{{TOUR_SLUG}}-NN-{{SHORT_SLUG}}.md`
 - **上一步终态**：{{WHAT_STATE_LOOKED_LIKE_AT_END_OF_PREV_STEP}}
 - **本步要解释**：{{WHAT_THIS_STEP_COVERS_2_3_SENTENCES}}
 - **下一步起点**：{{WHAT_STATE_SHOULD_BE_AT_END_OF_THIS_STEP}}
@@ -45,6 +48,10 @@ Use this template when dispatching an agent to write 1-4 tour steps in parallel.
 - **必须链接到**：第 X 章 §Y（{{TOPIC_LINKED}}）；第 Z 章 §W
 
 （重复以上块 1-4 次，根据 agent 负责的 step 数）
+
+【整条 tour 的步骤清单】(用于"分支与延伸"段引用本 tour 其他步骤)
+
+{{TOUR_STEP_LIST}}
 
 ---
 
@@ -57,6 +64,7 @@ Use this template when dispatching an agent to write 1-4 tour steps in parallel.
 - **Always provide tour-00 + 1 sample step** in the "必读" section. Without samples, agents drift in style.
 - **State variables** (上一步终态 / 下一步起点) are critical. They prevent agents from contradicting each other or repeating background.
 - **Cross-references** (必须链接到) prevents the tour from being self-contained — it MUST point back to chapters.
+- **Multi-tour placeholders**: `{{TOUR_SLUG}}` (kebab-case tour id, drives filename prefix), `{{TOUR_TITLE}}` (human-readable name), `{{TOUR_TARGET}}` (the minimal request this tour follows), `{{TOUR_STEP_COUNT}}` (total step count incl. overview), `{{TOUR_STEP_LIST}}` (markdown bullet list of all steps; controller injects). Used so each step file's filename prefixes the tour slug and so cross-step links can target other steps in the same tour.
 
 ## Quality verification
 
