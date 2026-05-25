@@ -5,7 +5,7 @@ import hljs from 'https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/+esm';
 import markedKatex from 'https://cdn.jsdelivr.net/npm/marked-katex-extension@5/+esm';
 
 import { CHAPTER_BY_ID, TOURS, getRepoMode, PROJECT_NAME, PROJECT_TAGLINE, PROJECT_FOCUS, TRACE_TARGET,
-         ANALYZED_COMMIT, ANALYZED_TAG, ANALYZED_DATE, PROJECT_GITHUB_REPO } from './chapters.js';
+         ANALYZED_COMMIT, ANALYZED_TAG, ANALYZED_DATE, PROJECT_GITHUB_REPO, normalizeTours } from './chapters.js';
 import { parseFileRef, makeCodeURL, escapeHTML, slugify } from './utils.js';
 import { renderMermaidIn } from './diagrams.js';
 import { enhanceWithGlossary } from './glossary.js';
@@ -105,15 +105,18 @@ export async function loadChapter(chapterId, anchor, contentEl) {
 // =========================================================
 
 export function renderHome(contentEl, chapters) {
-  const stepCount = Math.max(TOURS.length - 1, 0);   // 减去 tour-00 总览
+  const tours = normalizeTours(TOURS);
+  const primary = tours[0] || { steps: [], target: TRACE_TARGET };
+  const primaryStepCount = Math.max(primary.steps.length - 1, 0);   // 减去 overview
+  const primaryFirstStep = primary.steps.find(s => !s.id.endsWith('-00-overview'));
+  const primaryOverview = primary.steps.find(s => s.id.endsWith('-00-overview')) || primary.steps[0];
   const chapterCount = chapters.length;
-  const firstStep = TOURS.find(t => t.id !== 'tour-00-overview');
   let html = `
     <div class="home-hero">
       <h1>${PROJECT_NAME} ${T.title_suffix}</h1>
       <p class="lede">${PROJECT_TAGLINE}</p>
       <div class="home-stats">
-        <div class="stat">${T.home_stats_summary(stepCount, chapterCount)}</div>
+        <div class="stat">${T.home_stats_summary(primaryStepCount, chapterCount)}</div>
         <div class="stat">${T.home_stats_analyzed} <a href="https://github.com/${PROJECT_GITHUB_REPO}/tree/${ANALYZED_COMMIT}" target="_blank" rel="noopener"><strong>${ANALYZED_TAG}</strong></a> <span style="color:var(--text-faint)">(${ANALYZED_DATE})</span></div>
         ${PROJECT_FOCUS ? `<div class="stat">${T.home_stats_focus} <strong>${PROJECT_FOCUS}</strong></div>` : ''}
       </div>
@@ -122,10 +125,10 @@ export function renderHome(contentEl, chapters) {
     <section style="background:var(--accent-soft);border:1px solid var(--accent);border-radius:12px;padding:18px 22px;margin:24px 0 28px">
       <h2 style="margin:0 0 6px;font-size:20px;color:var(--accent);">${T.home_trace_h2(PROJECT_NAME)}</h2>
       <p style="margin:0 0 12px;color:var(--text-soft);font-size:14px;">
-        ${T.home_trace_lede(stepCount, PROJECT_NAME, escapeHTML(TRACE_TARGET))}
+        ${T.home_trace_lede(primaryStepCount, PROJECT_NAME, escapeHTML(primary.target || TRACE_TARGET))}
       </p>
-      <a href="#/tour-00-overview" style="display:inline-block;background:var(--accent);color:white;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">${T.home_trace_cta}</a>
-      ${firstStep ? `<a href="#/${firstStep.id}" style="display:inline-block;margin-left:8px;color:var(--accent);padding:8px 16px;border-radius:6px;text-decoration:none;font-size:14px;">${T.home_trace_sample}</a>` : ''}
+      ${primaryOverview ? `<a href="#/${primaryOverview.id}" style="display:inline-block;background:var(--accent);color:white;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">${T.home_trace_cta}</a>` : ''}
+      ${primaryFirstStep ? `<a href="#/${primaryFirstStep.id}" style="display:inline-block;margin-left:8px;color:var(--accent);padding:8px 16px;border-radius:6px;text-decoration:none;font-size:14px;">${T.home_trace_sample}</a>` : ''}
     </section>
 
     <section class="arch-section" id="arch-section">
@@ -141,21 +144,23 @@ export function renderHome(contentEl, chapters) {
       </div>
     </section>
 
-    <section>
-      <h2 style="font-size:20px;margin-bottom:8px;">${T.home_tour_h2(stepCount)}</h2>
-      <p style="color:var(--text-soft);margin-top:0;font-size:14px;">
-        ${T.home_tour_lede(PROJECT_NAME)}
-      </p>
-      <div class="chapter-grid">
-        ${TOURS.map(t => `
-          <a class="chapter-card" href="#/${t.id}" style="border-left:3px solid var(--accent)">
-            <div class="chapter-card-num">TOUR ${t.num}</div>
-            <div class="chapter-card-title">${t.title}</div>
-            <div class="chapter-card-desc">${t.desc}</div>
-          </a>
-        `).join('')}
-      </div>
-    </section>
+    ${tours.map(tour => `
+      <section style="margin-top:24px;">
+        <h2 style="font-size:20px;margin-bottom:8px;">${escapeHTML(tour.title || T.home_tour_h2(Math.max(tour.steps.length - 1, 0)))}</h2>
+        <p style="color:var(--text-soft);margin-top:0;font-size:14px;">
+          ${T.home_tour_lede(PROJECT_NAME)}
+        </p>
+        <div class="chapter-grid">
+          ${tour.steps.map(s => `
+            <a class="chapter-card" href="#/${s.id}" style="border-left:3px solid var(--accent)">
+              <div class="chapter-card-num">TOUR ${s.num}</div>
+              <div class="chapter-card-title">${s.title}</div>
+              <div class="chapter-card-desc">${s.desc}</div>
+            </a>
+          `).join('')}
+        </div>
+      </section>
+    `).join('')}
 
     <section style="margin-top:32px;">
       <h2 style="font-size:20px;margin-bottom:8px;">${T.home_ref_h2(chapterCount)}</h2>
