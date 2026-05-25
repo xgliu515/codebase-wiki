@@ -5,13 +5,11 @@ export const SlugSchema = z
   .string()
   .regex(/^[a-z0-9][a-z0-9-]{0,63}$/, 'slug must be kebab-case ASCII (1-64 chars)');
 
-// version_label: 非空,无 / \ 空格,无 .. 序列
-// 接受: semver (v0.22.0 / 1.0.0), pre-release (v1.0.0-rc.1), branch+hash (main-a1b2c3d)
+// version_label: 数字/字母开头 + 字母数字 . - +,长度 1-64,
+// 同时覆盖 SemVer (v0.22.0) 和 branch-shortSHA (main-a1b2c3d) 风格
 export const VersionLabelSchema = z
   .string()
-  .min(1)
-  .regex(/^[^\s/\\]+$/, 'version_label must not contain spaces or slashes')
-  .refine((s) => !s.includes('..'), 'version_label must not contain ..');
+  .regex(/^[a-zA-Z0-9][a-zA-Z0-9.\-+]{0,63}$/, 'version_label must be alphanumeric + . - + (max 64)');
 
 // 相对路径:无 ..,无前导 /,无 \\,非空
 export const RelativePathSchema = z
