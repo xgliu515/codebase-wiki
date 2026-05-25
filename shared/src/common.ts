@@ -3,7 +3,8 @@ import { z } from 'zod';
 // slug: 全小写 ASCII,字母数字开头,允许 hyphen,长度 1-64
 export const SlugSchema = z
   .string()
-  .regex(/^[a-z0-9][a-z0-9-]{0,63}$/, 'slug must be kebab-case ASCII (1-64 chars)');
+  .regex(/^[a-z0-9][a-z0-9-]{0,63}$/, 'slug must be kebab-case ASCII (1-64 chars)')
+  .refine((s) => !s.endsWith('-'), 'slug must not end with hyphen');
 
 // version_label: 数字/字母开头 + 字母数字 . - +,长度 1-64,
 // 同时覆盖 SemVer (v0.22.0) 和 branch-shortSHA (main-a1b2c3d) 风格

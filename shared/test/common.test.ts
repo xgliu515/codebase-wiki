@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { SlugSchema, VersionLabelSchema, RelativePathSchema, LanguageSchema } from '../src/common.js';
+import {
+  SlugSchema,
+  VersionLabelSchema,
+  RelativePathSchema,
+  LanguageSchema,
+  ContentTypeSchema,
+  SchemaVersionSchema,
+  parseSchemaMajor,
+} from '../src/common.js';
 
 describe('SlugSchema', () => {
   it('accepts kebab-case lowercase', () => {
@@ -17,6 +25,8 @@ describe('SlugSchema', () => {
     expect(SlugSchema.safeParse('a_b').success).toBe(false);
     expect(SlugSchema.safeParse('a.b').success).toBe(false);
     expect(SlugSchema.safeParse('a/b').success).toBe(false);
+    expect(SlugSchema.safeParse('a-').success).toBe(false);
+    expect(SlugSchema.safeParse('abc-').success).toBe(false);
   });
 
   it('rejects > 64 chars', () => {
@@ -64,5 +74,46 @@ describe('LanguageSchema', () => {
   it('rejects junk', () => {
     expect(LanguageSchema.safeParse('Chinese').success).toBe(false);
     expect(LanguageSchema.safeParse('').success).toBe(false);
+  });
+});
+
+describe('ContentTypeSchema', () => {
+  it('accepts codebase', () => {
+    expect(ContentTypeSchema.safeParse('codebase').success).toBe(true);
+  });
+
+  it('rejects unsupported types (v1 scope)', () => {
+    expect(ContentTypeSchema.safeParse('article').success).toBe(false);
+    expect(ContentTypeSchema.safeParse('story').success).toBe(false);
+    expect(ContentTypeSchema.safeParse('').success).toBe(false);
+  });
+});
+
+describe('SchemaVersionSchema', () => {
+  it('accepts MAJOR.MINOR pairs', () => {
+    expect(SchemaVersionSchema.safeParse('1.0').success).toBe(true);
+    expect(SchemaVersionSchema.safeParse('2.13').success).toBe(true);
+    expect(SchemaVersionSchema.safeParse('10.99').success).toBe(true);
+  });
+
+  it('rejects malformed versions', () => {
+    expect(SchemaVersionSchema.safeParse('1').success).toBe(false);
+    expect(SchemaVersionSchema.safeParse('1.0.0').success).toBe(false);
+    expect(SchemaVersionSchema.safeParse('v1.0').success).toBe(false);
+    expect(SchemaVersionSchema.safeParse('').success).toBe(false);
+  });
+});
+
+describe('parseSchemaMajor', () => {
+  it('extracts major', () => {
+    expect(parseSchemaMajor('1.0')).toBe(1);
+    expect(parseSchemaMajor('2.13')).toBe(2);
+    expect(parseSchemaMajor('10.99')).toBe(10);
+  });
+
+  it('throws on malformed input', () => {
+    expect(() => parseSchemaMajor('1.0.0')).toThrow(/invalid schema_version/);
+    expect(() => parseSchemaMajor('v1.0')).toThrow();
+    expect(() => parseSchemaMajor('')).toThrow();
   });
 });
