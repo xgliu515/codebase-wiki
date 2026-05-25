@@ -39,6 +39,14 @@ const QuestionSchema = z
         path: ['answer'],
       });
     }
+    const answerSet = new Set(q.answer);
+    if (answerSet.size !== q.answer.length) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'duplicate answer values',
+        path: ['answer'],
+      });
+    }
     for (const a of q.answer) {
       if (!optionIds.has(a)) {
         ctx.addIssue({
@@ -77,14 +85,14 @@ const RedactedQuestionSchema = z.object({
   stem: z.string(),
   options: z.array(OptionSchema).min(2).max(8),
   difficulty: DifficultySchema,
-  tags: z.array(z.string()).optional(),
+  tags: z.array(z.string().min(1).max(64)).max(10).optional(),
 }).strict();
 
 export const RedactedQuizSchema = z.object({
   schema_version: SchemaVersionSchema,
   chapter_id: SlugSchema,
   questions: z.array(RedactedQuestionSchema).min(1),
-});
+}).strict();
 
 export type Quiz = z.infer<typeof QuizSchema>;
 export type Question = z.infer<typeof QuestionSchema>;

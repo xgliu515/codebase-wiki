@@ -88,6 +88,12 @@ describe('QuizSchema', () => {
     } as any;
     expect(QuizSchema.safeParse(q).success).toBe(true);
   });
+
+  it('rejects mcq-multi with duplicate answer values', () => {
+    const q = structuredClone(validQuiz);
+    q.questions[1].answer = ['a', 'a'];
+    expect(QuizSchema.safeParse(q).success).toBe(false);
+  });
 });
 
 describe('RedactedQuizSchema', () => {
@@ -125,5 +131,26 @@ describe('RedactedQuizSchema', () => {
       ],
     };
     expect(RedactedQuizSchema.safeParse(bogus).success).toBe(false);
+  });
+
+  it('redactQuiz() strips sensitive fields and produces a RedactedQuiz', async () => {
+    const { redactQuiz } = await import('../src/quiz.js');
+    const parsed = QuizSchema.parse(validQuiz);
+    const redacted = redactQuiz(parsed);
+
+    // Schema accepts the redacted output
+    const r = RedactedQuizSchema.safeParse(redacted);
+    expect(r.success).toBe(true);
+
+    // No sensitive fields leaked into any question
+    for (const q of redacted.questions) {
+      expect((q as any).answer).toBeUndefined();
+      expect((q as any).explanation).toBeUndefined();
+      expect((q as any).references).toBeUndefined();
+    }
+
+    // Preserved fields match
+    expect(redacted.questions[0]!.id).toBe(parsed.questions[0]!.id);
+    expect(redacted.questions[0]!.stem).toBe(parsed.questions[0]!.stem);
   });
 });
