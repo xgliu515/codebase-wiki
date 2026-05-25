@@ -116,7 +116,7 @@ export function renderHome(contentEl, chapters) {
       <h1>${PROJECT_NAME} ${T.title_suffix}</h1>
       <p class="lede">${PROJECT_TAGLINE}</p>
       <div class="home-stats">
-        <div class="stat">${T.home_stats_summary(stepCount, chapterCount)}</div>
+        <div class="stat">${T.home_stats_summary(primaryStepCount, chapterCount)}</div>
         <div class="stat">${T.home_stats_analyzed} <a href="https://github.com/${PROJECT_GITHUB_REPO}/tree/${ANALYZED_COMMIT}" target="_blank" rel="noopener"><strong>${ANALYZED_TAG}</strong></a> <span style="color:var(--text-faint)">(${ANALYZED_DATE})</span></div>
         ${PROJECT_FOCUS ? `<div class="stat">${T.home_stats_focus} <strong>${PROJECT_FOCUS}</strong></div>` : ''}
       </div>
