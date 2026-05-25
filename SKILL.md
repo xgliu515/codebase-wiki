@@ -27,7 +27,8 @@ many versions: `mono-repo / <project> / <version> / wiki`. See
 |----------|------|---------|
 | No `projects.json`, directory empty / missing | new mono-repo | Create the repo + its first project |
 | `projects.json` present, target project dir absent | new project | Add a project to an existing mono-repo |
-| `projects.json` present, target project dir present | append version | Add a version to an existing project |
+| `projects.json` present, target project dir present, user prompt does NOT contain "add tour" / "加 tour" | append version | Add a version to an existing project |
+| `projects.json` present, target project dir present, user prompt CONTAINS "add tour" / "加 tour" / "添加 trace tour" | **add-tour** | Append an additional trace tour to the current version (see `reference/trace-tour-design.md` Multi-tour design) |
 
 Ask the user **one question at a time** (no batches):
 
@@ -36,6 +37,16 @@ Ask the user **one question at a time** (no batches):
 3. **Project name + GitHub repo** (new mono-repo / new project only): e.g., `vllm` + `vllm-project/vllm`
 4. **LANGUAGE** (new mono-repo / new project only): `zh-CN` (default) | `en`. Drives `<html lang>`, `{{TITLE_SUFFIX}}`, which README/glossary template to copy, and the `{{LANGUAGE}}` value passed to chapter/addendum prompts (`zh-CN` → `简体中文`, `en` → `English`). `bilingual` is no longer offered — pick one. The bilingual `strings.js` ships unmodified for both.
 5. **Lock version**: confirm `git rev-parse --short HEAD` of the codebase as the analyzed commit, or let the user specify a tag
+6. **PRIMARY_TOUR_SLUG + PRIMARY_TOUR_TITLE** (new mono-repo / new project only): kebab-case slug + human title for the wiki's primary trace tour. Default slug auto-derived from TRACE_TARGET (e.g. `llm.generate(...)` → `single-request`); default title `"单请求 Trace 导览"` (zh-CN) / `"Single-request trace tour"` (en). Substituted into `templates/web/js/chapters.js` `{{PRIMARY_TOUR_SLUG}}` / `{{PRIMARY_TOUR_TITLE}}` placeholders. See `reference/trace-tour-design.md` Multi-tour design.
+
+**add-tour mode (Phase 0 question 6-9 instead)**:
+
+When the detected mode is `add-tour`, skip questions 3-5 and instead ask:
+
+6. **Target project**: pick from the projects in `projects.json`
+7. **Target version**: default `latest` (whichever entry in the project's `versions.json` has `"latest": true`); user can pick a specific version dir
+8. **New tour slug**: kebab-case, unique within this wiki's existing `chapters.js` TOURS (skill reads the file and rejects conflicts). E.g. `batched`, `streaming`, `tool-call`
+9. **New tour title + TRACE_TARGET**: one-line human title (e.g. `"Batched generate trace tour"`) + the minimal request string this tour follows (e.g. `llm.generate(["a","b","c"], max_tokens=3)`)
 
 In **new project / append version** mode, read `projects.json` (and the
 project's `versions.json` when appending) and tell the user which
@@ -71,9 +82,11 @@ Output: a draft 10-15 chapter outline. **Show user, let them edit.** Skip generi
 
 ---
 
-## Phase 2: Design the trace tour
+## Phase 2: Design the trace tour(s)
 
-Pick **one minimum-viable use case** that exercises the full stack. Examples:
+### Fresh wiki (new mono-repo / new project mode)
+
+Pick **one minimum-viable use case** for the wiki's primary tour, then list ~15-20 steps as a state-evolution table. Examples:
 
 - vllm: `LLM("Qwen2.5-7B").generate(["hello"], max_tokens=3)`
 - hermes-agent: a single CLI message → tool call → response
@@ -85,11 +98,24 @@ Criteria for picking:
 - **Real**: must actually work end-to-end, not contrived
 - **Touches all layers**: skipping a layer means a trace step is empty
 
-Confirm with user. Then **list ~15-20 steps** as a state-evolution table (see `reference/trace-tour-design.md`).
+Confirm with user. Output: a state-evolution table (see `reference/trace-tour-design.md`).
+
+### add-tour mode (incremental)
+
+Phase 0 already collected the new tour's slug / title / TRACE_TARGET. In Phase 2:
+
+1. Read the existing wiki context (`chapters.js` CHAPTERS list + existing TOURS) — do NOT re-explore the codebase
+2. Check slug uniqueness (Phase 0 already did, but re-confirm against the actual file)
+3. Design the new tour's step list (~15-20 steps for full-stack tours; 8-12 for variant / subsystem tours). Use the same state-evolution table format as fresh-wiki tours.
+4. Confirm step list with user before Phase 3
+
+Output: a state-evolution table for this single new tour.
 
 ---
 
 ## Phase 3: Generate content
+
+### Fresh wiki
 
 Use **parallel agents** (dispatching-parallel-agents skill). For each agent, give:
 
@@ -98,13 +124,27 @@ Use **parallel agents** (dispatching-parallel-agents skill). For each agent, giv
 - Strict format rules (8-section template for tour; standard markdown for chapters)
 - Output path
 - The `{{LANGUAGE}}` value: `简体中文` for `zh-CN` LANGUAGE, `English` for `en` LANGUAGE — drives whether the agent writes Chinese or English content
+- For tour step agents: `{{TOUR_SLUG}}`, `{{TOUR_TITLE}}`, `{{TOUR_TARGET}}`, `{{TOUR_STEP_COUNT}}`, `{{TOUR_STEP_LIST}}` — controller fills these from Phase 0's PRIMARY_TOUR_SLUG / PRIMARY_TOUR_TITLE and Phase 2's step table
 
 Recommended dispatch:
 - 5-6 agents for chapters (group adjacent chapters per agent)
 - 5-6 agents for tour steps (group adjacent steps per agent)
+- 1 agent for the tour overview file (`tour-<slug>-00-overview.md`) using `templates/tour-overview-prompt.md` — controller provides `{{STEP_TABLE}}` verbatim from Phase 2 so the overview doesn't drift from generated steps
 - All in **one parallel batch** (single message, multiple Agent tool uses)
 
-**Quality bar**: each chapter ~800-1500 lines, each tour step ~120-200 lines. `file:line` refs everywhere. Code excerpts 5-30 lines max.
+**Quality bar**: each chapter ~800-1500 lines, each tour step ~120-200 lines, tour overview ~150 lines. `file:line` refs everywhere. Code excerpts 5-30 lines max.
+
+### add-tour mode
+
+Same dispatch pattern but **only for the new tour**:
+
+- N/3 parallel agents writing 3-5 steps each (`templates/tour-step-prompt.md`)
+- 1 agent for the new tour's overview (`templates/tour-overview-prompt.md`)
+- Each tour step agent gets the **existing wiki's `chapters.js`** so they can link back to the right CHAPTERS in section 7 (分支与延伸)
+- Each agent gets `{{TOUR_SLUG}}` = Phase 0's new-tour slug, `{{TOUR_TITLE}}` = new-tour title, `{{TOUR_TARGET}}` = new-tour TRACE_TARGET, `{{LANGUAGE}}` = the existing wiki's LANGUAGE (read from `<html lang>` of the wiki's `index.html`)
+- The overview agent additionally receives `{{OTHER_TOURS}}` = a bullet list of the existing tours in `chapters.js` TOURS (after normalization), e.g. `"single-request: Single-request trace tour — follows llm.generate([\"hi\"], ...)"`
+
+**Do NOT regenerate** any existing chapter or tour step. Reference chapters and the existing tour stay untouched.
 
 ---
 
@@ -119,7 +159,14 @@ mono-repo. Copy `templates/web/` (including `web/js/versions.js`) into
 1. **`web/js/chapters.js`** (the only JS file requiring per-project edits — all other
    `web/js/*.js` import the constants below, so do **not** hardcode the project name anywhere else).
    **Edit ONLY the constants in the upper section** (PROJECT_NAME / PROJECT_GITHUB_REPO / ANALYZED_* / PROJECT_TAGLINE / PROJECT_FOCUS / TRACE_TARGET / CHAPTERS / TOURS).
-   **Do NOT remove or rewrite the helper functions in the lower half** (`getCurrentVersionDir`, `getCurrentProjectDir`, `STORAGE_PREFIX` IIFE, `REPO_ROOT_KEY`, `getRepoMode`, `getRepoRoot`, `setRepoRoot`) — `utils.js` / `app.js` / `sidebar.js` / `glossary.js` import them and the viewer will fail at module load (`does not provide an export named 'getRepoMode'`) if they're truncated or simplified:
+   **Do NOT remove or rewrite the helper functions in the lower half** (`normalizeTours`, `getCurrentVersionDir`, `getCurrentProjectDir`, `STORAGE_PREFIX` IIFE, `REPO_ROOT_KEY`, `getRepoMode`, `getRepoRoot`, `setRepoRoot`) — `utils.js` / `app.js` / `sidebar.js` / `content.js` / `glossary.js` import them and the viewer will fail at module load (`does not provide an export named 'getRepoMode'`) if they're truncated or simplified.
+
+   **TOURS schema** (new wikis): TOURS is an array of tour **groups**, each with `slug` / `title` / `target` / `steps[]`. The primary tour's slug/title come from Phase 0 (`{{PRIMARY_TOUR_SLUG}}` / `{{PRIMARY_TOUR_TITLE}}`). See `reference/trace-tour-design.md` Multi-tour design.
+
+   **add-tour mode**: edit the existing wiki's `chapters.js` in place — **append** a new tour group to the TOURS array. If the existing TOURS is the **old flat shape** (pre-multi-tour wiki), first migrate in place: wrap the existing flat steps into a single group with `slug: 'main'`, `title: '单请求 Trace 导览'` (zh-CN wiki) or `'Single-request trace tour'` (en wiki) — read `<html lang>` from the wiki's `index.html` to decide — `target: <existing TRACE_TARGET>`, `steps: [<existing flat steps verbatim>]`. **Do NOT rename existing step files** — preserve URL compatibility. Then append the new tour group as a second array entry.
+
+   In add-tour mode, the wiki's `sidebar.js` and `content.js` must also be at the new-template version (they use `normalizeTours` and per-group rendering). If the wiki's chrome predates multi-tour (no `normalizeTours` import), copy `templates/web/js/sidebar.js` and `templates/web/js/content.js` over the wiki's versions. Verify with `grep "normalizeTours" <wiki>/web/js/sidebar.js <wiki>/web/js/content.js` — expect 1 match each.
+
    - `PROJECT_NAME` → friendly name, e.g., `vLLM` (used in page titles, home page, GitHub link labels)
    - `PROJECT_GITHUB_REPO` → e.g., `vllm-project/vllm`
    - `ANALYZED_COMMIT` → e.g., `086749736`
@@ -156,14 +203,18 @@ mono-repo. Copy `templates/web/` (including `web/js/versions.js`) into
    grep -rE '\{\{[A-Z_]+\}\}' <output>/<project>/<version>/index.html <output>/<project>/<version>/README.md
    # Expected: zero matches.
 
-   # (b) chapters.js still exports all the helpers the viewer needs
+   # (b) chapters.js still exports all the helpers the viewer needs (including normalizeTours)
    node --check <output>/<project>/<version>/web/js/chapters.js
-   grep -cE '^export (function (getCurrentVersionDir|getCurrentProjectDir|getRepoMode|getRepoRoot|setRepoRoot)|const STORAGE_PREFIX)' <output>/<project>/<version>/web/js/chapters.js
-   # Expected: 6  (5 functions + STORAGE_PREFIX). If less, the agent truncated the lower half — restore from templates/web/js/chapters.js.
+   grep -cE '^export (function (normalizeTours|getCurrentVersionDir|getCurrentProjectDir|getRepoMode|getRepoRoot|setRepoRoot)|const STORAGE_PREFIX)' <output>/<project>/<version>/web/js/chapters.js
+   # Expected: 7  (6 functions + STORAGE_PREFIX). If less, the agent truncated the lower half — restore from templates/web/js/chapters.js.
 
    # (c) All web/js files present
    ls <output>/<project>/<version>/web/js/ | sort
    # Expected: app.js architecture.js chapters.js content.js diagrams.js glossary.js search.js sidebar.js strings.js utils.js versions.js
+
+   # (d) For fresh-wiki / new-project mode: TOURS is in group shape with one entry (or more after add-tour)
+   node -e "import('<output>/<project>/<version>/web/js/chapters.js').then(m => { const t = m.TOURS; if (!t[0]?.steps) throw new Error('TOURS not in group shape'); console.log('OK', t.length, 'tour(s)'); })"
+   # Expected: prints "OK 1 tour(s)" for fresh, "OK 2 tour(s)" after first add-tour, etc.
    ```
    Common misses: `{{PROJECT_NAME}}` in the brand `<a>` tag (line ~22 of index.html), `{{LANG}}` in `<html>` (line ~10), `{{TITLE_SUFFIX}}` in `<title>` (line ~14), truncated `chapters.js` helpers, missing `versions.js` or `strings.js`. Re-substitute / re-copy and re-verify.
 
