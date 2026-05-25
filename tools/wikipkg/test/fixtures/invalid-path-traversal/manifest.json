@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "content_type": "codebase",
+  "subject": { "slug": "demo", "name": "Demo", "language": "en" },
+  "wiki_version": {
+    "label": "v0.1.0",
+    "generated_at": "2026-05-25T00:00:00Z",
+    "generator": { "name": "codebase-wiki", "version": "2.0.0" }
+  },
+  "source": {
+    "type": "codebase",
+    "codebase": {
+      "repo_url": "https://github.com/example/demo",
+      "target_ref": "v0.1.0",
+      "target_commit": "abcdef0",
+      "deep_link_template": "https://x/{commit}/{path}#L{line}"
+    }
+  },
+  "chapters": [{
+    "id": "intro", "order": 1, "title": "Intro",
+    "path": "../etc/passwd", "estimated_minutes": 5
+  }],
+  "tours": [],
+  "glossary_path": "glossary.json",
+  "figures": []
+}

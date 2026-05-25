@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "chapter_id": "intro",
+  "questions": [
+    {
+      "id": "intro-q1",
+      "type": "mcq-single",
+      "stem": "2 + 2 = ?",
+      "options": [
+        { "id": "a", "text": "3" },
+        { "id": "b", "text": "4" }
+      ],
+      "answer": ["b"],
+      "difficulty": "easy"
+    }
+  ]
+}
