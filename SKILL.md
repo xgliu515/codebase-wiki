@@ -316,6 +316,12 @@ For each chapter in `CHAPTERS`:
 
 ## Phase 9 — Build manifest + pack wikipkg
 
+0. **One-time build of CLI** (if `tools/wikipkg/dist/cli.js` does not exist yet):
+   ```bash
+   cd /path/to/codebase-wiki && npm install && npm run build --workspace @codebase-wiki/shared && npm run build --workspace @codebase-wiki/wikipkg
+   ```
+   Skip this step on subsequent invocations once `dist/cli.js` is present.
+
 1. Construct `manifest.json` in the wikipkg directory with all chapters / tours / figures / glossary path / source metadata. Use the schema in `reference/wikipkg-format.md`
 2. Run `node tools/wikipkg/dist/cli.js validate <wikipkg-dir>` — fix any errors
 3. Run `node tools/wikipkg/dist/cli.js pack <wikipkg-dir> <subject-slug>-<version-label>.wikipkg.tar.gz`

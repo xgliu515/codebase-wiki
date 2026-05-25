@@ -115,7 +115,7 @@ describe('RedactedQuizSchema', () => {
     expect(r.success).toBe(true);
   });
 
-  it('rejects redacted shape carrying answer', () => {
+  it('strips extra fields rather than rejecting (additive-only friendly)', () => {
     const bogus = {
       schema_version: '1.0',
       chapter_id: 'x',
@@ -126,11 +126,16 @@ describe('RedactedQuizSchema', () => {
           stem: 's',
           options: [{ id: 'a', text: 't1' }, { id: 'b', text: 't2' }],
           difficulty: 'easy',
-          answer: ['a'],
+          answer: ['a'],  // extra field — should be stripped, not rejected
         },
       ],
     };
-    expect(RedactedQuizSchema.safeParse(bogus).success).toBe(false);
+    const r = RedactedQuizSchema.safeParse(bogus);
+    expect(r.success).toBe(true);
+    // After parsing, the answer field is stripped from the typed view
+    if (r.success) {
+      expect((r.data.questions[0] as any).answer).toBeUndefined();
+    }
   });
 
   it('redactQuiz() strips sensitive fields and produces a RedactedQuiz', async () => {

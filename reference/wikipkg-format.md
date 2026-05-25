@@ -11,7 +11,7 @@ For the **why** behind these decisions, see `docs/specs/2026-05-25-codebase-wiki
 ```
 
 - `<subject-slug>` matches `^[a-z0-9][a-z0-9-]{0,63}$`
-- `<version-label>` matches `^v?[0-9][0-9a-zA-Z.\-+]{0,63}$`
+- `<version-label>` matches `^[a-zA-Z0-9][a-zA-Z0-9.\-+]{0,63}$` (accepts both SemVer like `v0.22.0` and branch-shortSHA like `main-a1b2c3d`)
 - Double extension `.wikipkg.tar.gz` is a recognition hint
 
 ## Tarball layout

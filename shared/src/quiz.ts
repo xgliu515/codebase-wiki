@@ -86,13 +86,13 @@ const RedactedQuestionSchema = z.object({
   options: z.array(OptionSchema).min(2).max(8),
   difficulty: DifficultySchema,
   tags: z.array(z.string().min(1).max(64)).max(10).optional(),
-}).strict();
+});
 
 export const RedactedQuizSchema = z.object({
   schema_version: SchemaVersionSchema,
   chapter_id: SlugSchema,
   questions: z.array(RedactedQuestionSchema).min(1),
-}).strict();
+});
 
 export type Quiz = z.infer<typeof QuizSchema>;
 export type Question = z.infer<typeof QuestionSchema>;
