@@ -66,7 +66,11 @@ const FigureEntrySchema = z.object({
   title: z.string().min(1).max(200),
 });
 
-// content_type 与 source.type 的 cross-field consistency
+// Forward-looking: in v1 the discriminated union already rejects any source.type
+// outside the supported content_types, so this guard is structurally unreachable.
+// It activates once a second content_type (e.g. 'article') is added to BOTH
+// ContentTypeSchema and SourceSchema's discriminated union — at that point this
+// check prevents valid-individually-but-inconsistent combinations.
 function refineSourceConsistency<T extends { content_type: string; source: { type: string } }>(
   m: T,
   ctx: z.RefinementCtx,
@@ -80,20 +84,21 @@ function refineSourceConsistency<T extends { content_type: string; source: { typ
   }
 }
 
-function refineUniqueChapterIds(
-  chapters: ReadonlyArray<{ id: string }>,
+function refineUniqueIds(
+  arr: ReadonlyArray<{ id: string }>,
+  label: 'chapters' | 'tours',
   ctx: z.RefinementCtx,
 ) {
   const seen = new Set<string>();
-  chapters.forEach((c, i) => {
-    if (seen.has(c.id)) {
+  arr.forEach((item, i) => {
+    if (seen.has(item.id)) {
       ctx.addIssue({
         code: 'custom',
-        path: ['chapters', i, 'id'],
-        message: `duplicate chapter id: ${c.id}`,
+        path: [label, i, 'id'],
+        message: `duplicate ${label} id: ${item.id}`,
       });
     }
-    seen.add(c.id);
+    seen.add(item.id);
   });
 }
 
@@ -111,10 +116,13 @@ export const ManifestSchema = z
   })
   .superRefine((m, ctx) => {
     refineSourceConsistency(m, ctx);
-    refineUniqueChapterIds(m.chapters, ctx);
+    refineUniqueIds(m.chapters, 'chapters', ctx);
+    refineUniqueIds(m.tours, 'tours', ctx);
   });
 
 export type Manifest = z.infer<typeof ManifestSchema>;
+export type Subject = z.infer<typeof SubjectSchema>;
 export type ChapterEntry = z.infer<typeof ChapterEntrySchema>;
 export type Tour = z.infer<typeof TourSchema>;
+export type TourStep = z.infer<typeof TourStepSchema>;
 export type FigureEntry = z.infer<typeof FigureEntrySchema>;

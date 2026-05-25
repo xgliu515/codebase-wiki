@@ -125,4 +125,24 @@ describe('ManifestSchema', () => {
     const _check: Manifest = r;
     expect(_check.content_type).toBe('codebase');
   });
+
+  it('rejects duplicate tour ids', () => {
+    const m = {
+      ...validCodebaseManifest,
+      tours: [
+        validCodebaseManifest.tours[0],
+        validCodebaseManifest.tours[0],
+      ],
+    };
+    expect(ManifestSchema.safeParse(m).success).toBe(false);
+  });
+
+  it('Subject and TourStep types are exported', () => {
+    // Compile-time check: instantiate the types
+    const parsed = ManifestSchema.parse(validCodebaseManifest);
+    const s: import('../src/manifest.js').Subject = parsed.subject;
+    const ts: import('../src/manifest.js').TourStep = parsed.tours[0]!.steps[0]!;
+    expect(s.slug).toBe('vllm');
+    expect(ts.order).toBe(1);
+  });
 });
