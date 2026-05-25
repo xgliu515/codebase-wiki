@@ -27,10 +27,11 @@ async function fileExists(p: string): Promise<boolean> {
   }
 }
 
-function isSafeRelative(rel: string, baseDir: string): boolean {
+export function isSafeRelative(rel: string, baseDir: string): boolean {
   if (isAbsolute(rel)) return false;
+  const base = resolve(baseDir);
   const resolved = resolve(baseDir, rel);
-  return resolved.startsWith(resolve(baseDir));
+  return resolved === base || resolved.startsWith(base + '/');
 }
 
 export async function validateWikipkgDir(dir: string): Promise<ValidationResult> {
@@ -64,11 +65,11 @@ export async function validateWikipkgDir(dir: string): Promise<ValidationResult>
   // Cross-check: every declared path exists and is inside dir
   const checkPath = async (rel: string, label: string) => {
     if (!isSafeRelative(rel, dir)) {
-      errors.push({ code: 'manifest_invalid', message: `${label}: path traversal: ${rel}`, path: label });
+      errors.push({ code: 'manifest_invalid', message: `path traversal: ${rel}`, path: label });
       return;
     }
     if (!(await fileExists(resolve(dir, rel)))) {
-      errors.push({ code: 'referenced_file_missing', message: `${label}: file missing: ${rel}`, path: label });
+      errors.push({ code: 'referenced_file_missing', message: `file missing: ${rel}`, path: label });
     }
   };
 
