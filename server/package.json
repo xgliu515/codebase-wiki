@@ -1,0 +1,29 @@
+{
+  "name": "@codebase-wiki/server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node ./dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "test": "vitest run",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@codebase-wiki/shared": "*",
+    "@hono/node-server": "^1.13.0",
+    "hono": "^4.6.0",
+    "better-sqlite3": "^11.3.0",
+    "tar": "^7.4.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^20.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}
