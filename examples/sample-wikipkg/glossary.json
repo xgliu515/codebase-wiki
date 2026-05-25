@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "terms": [
+    {
+      "id": "mutex",
+      "term": "Mutex",
+      "aliases": ["mutual exclusion lock"],
+      "definition": "A synchronization primitive that ensures only one thread/handler accesses a shared resource at a time.",
+      "see_also": ["race-condition"]
+    },
+    {
+      "id": "race-condition",
+      "term": "Race condition",
+      "definition": "A bug class where the outcome depends on non-deterministic ordering of concurrent operations.",
+      "see_also": ["mutex"]
+    }
+  ]
+}

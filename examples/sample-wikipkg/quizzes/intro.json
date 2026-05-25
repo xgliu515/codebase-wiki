@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "chapter_id": "intro",
+  "questions": [
+    {
+      "id": "intro-q1",
+      "type": "mcq-single",
+      "stem": "Why does this wiki exist?",
+      "options": [
+        { "id": "a", "text": "To document a real production service" },
+        { "id": "b", "text": "As a test fixture for codebase-wiki service development" },
+        { "id": "c", "text": "As a tutorial for HTTP servers" }
+      ],
+      "answer": ["b"],
+      "explanation": "Stated explicitly in the intro chapter.",
+      "difficulty": "easy"
+    }
+  ]
+}

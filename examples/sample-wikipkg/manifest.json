@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.0",
+  "content_type": "codebase",
+  "subject": {
+    "slug": "tiny-counter",
+    "name": "Tiny Counter Service",
+    "description": "A toy service for demo wiki, used as integration fixture for codebase-wiki service",
+    "language": "en"
+  },
+  "wiki_version": {
+    "label": "v0.1.0",
+    "generated_at": "2026-05-25T00:00:00Z",
+    "generator": { "name": "codebase-wiki", "version": "2.0.0" }
+  },
+  "source": {
+    "type": "codebase",
+    "codebase": {
+      "repo_url": "https://github.com/example/tiny-counter",
+      "target_ref": "v0.1.0",
+      "target_commit": "1234567",
+      "deep_link_template": "https://github.com/example/tiny-counter/blob/{commit}/{path}#L{line}"
+    }
+  },
+  "chapters": [
+    {
+      "id": "intro",
+      "order": 1,
+      "title": "Introduction",
+      "path": "chapters/intro.md",
+      "estimated_minutes": 3,
+      "quiz_path": "quizzes/intro.json",
+      "tags": ["overview"]
+    },
+    {
+      "id": "architecture",
+      "order": 2,
+      "title": "Architecture",
+      "path": "chapters/architecture.md",
+      "estimated_minutes": 5,
+      "quiz_path": "quizzes/architecture.json"
+    },
+    {
+      "id": "request-flow",
+      "order": 3,
+      "title": "Request Flow",
+      "path": "chapters/request-flow.md",
+      "estimated_minutes": 7,
+      "quiz_path": "quizzes/request-flow.json"
+    }
+  ],
+  "tours": [
+    {
+      "id": "main",
+      "title": "Following a single increment request",
+      "overview_path": "tours/main/00-overview.md",
+      "steps": [
+        { "order": 1, "title": "HTTP entry", "path": "tours/main/01-http-entry.md" },
+        { "order": 2, "title": "Counter update", "path": "tours/main/02-counter-update.md" }
+      ]
+    }
+  ],
+  "glossary_path": "glossary.json",
+  "figures": [
+    { "id": "architecture", "path": "figures/architecture.svg", "title": "System architecture" }
+  ]
+}

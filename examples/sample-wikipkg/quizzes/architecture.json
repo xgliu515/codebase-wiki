@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "chapter_id": "architecture",
+  "questions": [
+    {
+      "id": "architecture-q1",
+      "type": "mcq-single",
+      "stem": "How many layers does Tiny Counter have?",
+      "options": [
+        { "id": "a", "text": "1" },
+        { "id": "b", "text": "2" },
+        { "id": "c", "text": "3" },
+        { "id": "d", "text": "4" }
+      ],
+      "answer": ["c"],
+      "difficulty": "easy"
+    },
+    {
+      "id": "architecture-q2",
+      "type": "mcq-multi",
+      "stem": "Which statements about the locking layer are true?",
+      "options": [
+        { "id": "a", "text": "Prevents race on increment" },
+        { "id": "b", "text": "Uses a Mutex" },
+        { "id": "c", "text": "Held during JSON serialization" }
+      ],
+      "answer": ["a", "b"],
+      "difficulty": "medium"
+    }
+  ]
+}

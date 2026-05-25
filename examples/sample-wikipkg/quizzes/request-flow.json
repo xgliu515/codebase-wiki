@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "chapter_id": "request-flow",
+  "questions": [
+    {
+      "id": "request-flow-q1",
+      "type": "mcq-single",
+      "stem": "What does the handler do AFTER releasing the mutex?",
+      "options": [
+        { "id": "a", "text": "Reads counter.value" },
+        { "id": "b", "text": "Returns JSON response" },
+        { "id": "c", "text": "Acquires mutex again" }
+      ],
+      "answer": ["b"],
+      "difficulty": "easy"
+    }
+  ]
+}
