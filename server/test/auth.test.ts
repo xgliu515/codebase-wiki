@@ -146,4 +146,55 @@ describe('auth', () => {
       expect(u).toBeUndefined();
     });
   });
+
+  describe('admin role edge cases', () => {
+    it('treats empty ADMIN_GITHUB_LOGINS as no admins', async () => {
+      // Recreate app with empty admin list
+      const appEmpty = createApp({
+        db,
+        env: {
+          GITHUB_CLIENT_ID: 'x',
+          GITHUB_CLIENT_SECRET: 'x',
+          OAUTH_REDIRECT_URI: 'http://x',
+          ADMIN_GITHUB_LOGINS: '',
+          DATA_DIR: tmpDir,
+          PUBLIC_READ: 'true',
+        },
+      });
+      const userId = db
+        .prepare(
+          `INSERT INTO users (github_id, github_login, created_at, last_seen_at)
+           VALUES (?, ?, ?, ?) RETURNING id`,
+        )
+        .get(99, 'anyone', Date.now(), Date.now()) as { id: number };
+      const sid = createSession(db, userId.id);
+      const res = await appEmpty.request('/api/v1/auth/me', { headers: { cookie: `cwsess=${sid}` } });
+      const body = await res.json();
+      expect(body.is_admin).toBe(false);
+    });
+
+    it('treats multi-value ADMIN_GITHUB_LOGINS correctly', async () => {
+      const appMulti = createApp({
+        db,
+        env: {
+          GITHUB_CLIENT_ID: 'x',
+          GITHUB_CLIENT_SECRET: 'x',
+          OAUTH_REDIRECT_URI: 'http://x',
+          ADMIN_GITHUB_LOGINS: 'alice, bob , carol',
+          DATA_DIR: tmpDir,
+          PUBLIC_READ: 'true',
+        },
+      });
+      const bobId = db
+        .prepare(
+          `INSERT INTO users (github_id, github_login, created_at, last_seen_at)
+           VALUES (?, ?, ?, ?) RETURNING id`,
+        )
+        .get(98, 'bob', Date.now(), Date.now()) as { id: number };
+      const sid = createSession(db, bobId.id);
+      const res = await appMulti.request('/api/v1/auth/me', { headers: { cookie: `cwsess=${sid}` } });
+      const body = await res.json();
+      expect(body.is_admin).toBe(true);
+    });
+  });
 });

@@ -14,11 +14,13 @@ export type AuthEnv = {
   GITHUB_CLIENT_SECRET: string;
   OAUTH_REDIRECT_URI: string;
   ADMIN_GITHUB_LOGINS: string;
+  COOKIE_SECURE?: string;
 };
 
 export function createAuthRoutes(db: DB, env: AuthEnv) {
   const r = new Hono();
   const adminLogins = new Set(env.ADMIN_GITHUB_LOGINS.split(',').map((s) => s.trim()).filter(Boolean));
+  const cookieSecure = env.COOKIE_SECURE === 'true';
 
   r.get('/me', (c) => {
     const sid = getCookie(c, 'cwsess');
@@ -39,7 +41,7 @@ export function createAuthRoutes(db: DB, env: AuthEnv) {
     setCookie(c, 'cwoauth', state, {
       httpOnly: true,
       sameSite: 'Lax',
-      secure: false,
+      secure: cookieSecure,
       maxAge: 600,
     });
     const url = buildAuthorizeUrl(env.GITHUB_CLIENT_ID, env.OAUTH_REDIRECT_URI, state);
@@ -88,7 +90,7 @@ export function createAuthRoutes(db: DB, env: AuthEnv) {
     setCookie(c, 'cwsess', sid, {
       httpOnly: true,
       sameSite: 'Lax',
-      secure: false,
+      secure: cookieSecure,
       maxAge: 30 * 24 * 3600,
       path: '/',
     });
