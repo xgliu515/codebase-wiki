@@ -16,23 +16,27 @@ entry modes total).
 
 ```
 SKILL.md                — main skill spec (entry mode dispatch + phases)
-reference/              — methodology docs cited from SKILL.md
-templates/              — copied verbatim into each generated wiki
+reference/              — methodology + on-disk contracts
+  wikipkg-format.md     — wikipkg data format reference (the contract)
+templates/              — copied verbatim into each generated static-site wiki
   web/                  — viewer (JS + CSS, no build step)
-  *-prompt.md           — agent prompt templates
+  *-prompt.md           — agent prompt templates (now incl. chapter-quiz-prompt)
+shared/                 — TS workspace: zod schemas, consumed by wikipkg CLI + future service/viewer
+tools/wikipkg/          — TS workspace: `wikipkg validate` / `wikipkg pack` CLI
+examples/
+  sample-wikipkg/       — minimal fixture (tiny-counter), used by codebase-wiki service tests
 docs/
-  specs/                — design docs for each feature (problem statement + decision)
-  plans/                — step-by-step implementation plans (consumed by writing-plans)
-  decisions/            — ADR-style decision records (philosophy + data contracts)
-examples/               — pointers to reference implementations
+  specs/                — design docs
+  plans/                — implementation plans
+  decisions/            — ADR-style decision records
 INSTALL.md              — user-facing install instructions
 ```
 
 ## Conventions
 
-- **No automated tests.** Verification is `node --check`, `grep`,
-  `wc -l`, `python3 -m json.tool`, and manual browser inspection.
-  Do not invent a test framework; do not search for one.
+- **Testing**:
+  - **Skill content** (SKILL.md, templates/, reference/): no automated tests. Verification is `node --check`, `grep`, `wc -l`, `python3 -m json.tool`, and manual browser inspection.
+  - **TypeScript workspaces** (`shared/`, `tools/wikipkg/`, future `server/` and `viewer/`): use **vitest** for unit + lightweight integration tests. Run via `npm test --workspace <name>`.
 - **No build step.** All JS in `templates/web/js/` is hand-written
   vanilla ES modules. Imports are relative paths or CDN URLs.
 - **Default output language: Chinese (Simplified).** User may override
@@ -57,6 +61,10 @@ INSTALL.md              — user-facing install instructions
   - `2026-05-21-addenda-as-feedback-signal.md` — addenda are quality
     feedback for future chapter generation, not just supplementary
     content
+  - `2026-05-25-codebase-wiki-service-design.md` (spec) — full service+data redesign;
+    introduces `.wikipkg.tar.gz` as a versioned, immutable data artifact distinct from
+    the legacy static-site output. See § "Wiki package 格式" for the data contract
+    (also reflected verbatim in `reference/wikipkg-format.md`).
 
 ## Skills that have shaped this repo
 
