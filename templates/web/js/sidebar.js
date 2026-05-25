@@ -1,4 +1,4 @@
-import { CHAPTERS, TOURS, CHAPTER_BY_ID, STORAGE_PREFIX } from './chapters.js';
+import { CHAPTERS, TOURS, CHAPTER_BY_ID, STORAGE_PREFIX, normalizeTours } from './chapters.js';
 import { throttle } from './utils.js';
 import { T } from './strings.js';
 
@@ -37,12 +37,14 @@ export function renderChapterList(currentChapterId) {
   // 首页
   html += `<a class="ch-item ${!currentChapterId ? 'active' : ''}" href="#/" style="margin-bottom:6px"><span class="ch-num">★</span>${T.sidebar_home}</a>`;
 
-  // Tour 段
-  if (TOURS && TOURS.length) {
-    html += `<div class="sidebar-head">${T.sidebar_tour_head}</div>`;
-    for (const t of TOURS) {
-      const active = t.id === currentChapterId ? 'active' : '';
-      html += `<a class="ch-item ${active}" href="#/${t.id}"><span class="ch-num">${t.num}</span>${t.title}</a>`;
+  // Tour 段: 每个 tour group 一个 section
+  for (const tour of normalizeTours(TOURS)) {
+    if (!tour.steps || tour.steps.length === 0) continue;
+    const headLabel = tour.title || T.sidebar_tour_head;
+    html += `<div class="sidebar-head">${escapeAttr(headLabel)}</div>`;
+    for (const step of tour.steps) {
+      const active = step.id === currentChapterId ? 'active' : '';
+      html += `<a class="ch-item ${active}" href="#/${step.id}"><span class="ch-num">${step.num}</span>${step.title}</a>`;
     }
   }
 
