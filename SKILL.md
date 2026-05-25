@@ -13,6 +13,8 @@ You are helping a user **deeply learn a codebase by generating a two-layer educa
 
 This skill is the result of iteratively building such a wiki for vLLM (see `examples/vllm-wiki.md`). The methodology, agent prompt templates, web shell, and SVG style guide are battle-tested.
 
+> **As of 2026-05-25:** there are two production output modes. The legacy **static-site mode** (default for now) produces a self-contained HTML+JS+MD wiki suitable for GitHub Pages. The new **wikipkg mode** produces a `.wikipkg.tar.gz` for upload to a codebase-wiki service instance. Switch modes by stating intent at the top of the conversation; otherwise the skill defaults to static-site.
+
 ---
 
 ## Phase 0: Detect mode + gather inputs (do this first)
@@ -29,6 +31,16 @@ many versions: `mono-repo / <project> / <version> / wiki`. See
 | `projects.json` present, target project dir absent | new project | Add a project to an existing mono-repo |
 | `projects.json` present, target project dir present, user prompt does NOT contain "add tour" / "加 tour" | append version | Add a version to an existing project |
 | `projects.json` present, target project dir present, user prompt CONTAINS "add tour" / "加 tour" / "添加 trace tour" | **add-tour** | Append an additional trace tour to the current version (see `reference/trace-tour-design.md` Multi-tour design) |
+
+- **wikipkg mode** — triggered when the user says one of:
+  - "generate a wikipkg for ..."
+  - "produce a wiki package for ..."
+  - "for the codebase-wiki service" (in conjunction with a generate request)
+
+  Flow: Phases 1-6 (exploration + chapter content), then **skip Phase 7** (static-site web setup),
+  then **Phase 8** (quiz generation), then **Phase 9** (manifest + pack).
+
+  Output is a single `.wikipkg.tar.gz` ready for service upload.
 
 Ask the user **one question at a time** (no batches):
 
@@ -283,6 +295,33 @@ holds a version selector + `versions.json`; each version holds a wiki. See
 - `git add -A && git commit -m "add <version> for <project>"` and push (confirm first).
 
 See `reference/monorepo.md` for the naming rule and error handling.
+
+---
+
+## Phase 8 — Generate chapter quizzes (wikipkg mode only)
+
+For each chapter in `CHAPTERS`:
+
+1. Read the chapter markdown content
+2. Dispatch a subagent with `templates/chapter-quiz-prompt.md`, substituting:
+   - `{{CHAPTER_SLUG}}` → the chapter id (slug form)
+   - `{{CHAPTER_TITLE}}` → the chapter title
+   - `{{CHAPTER_CONTENT}}` → the full chapter markdown
+3. Receive JSON output; write to `quizzes/<chapter-slug>.json` inside the wikipkg directory
+4. Run `node tools/wikipkg/dist/cli.js validate <wikipkg-dir>` after **all** quizzes are written
+5. If validation fails on any quiz JSON, re-dispatch that chapter's prompt with the validation error in the input
+6. Loop until all quizzes validate
+
+**Skip Phase 8** if the user invoked the legacy static-site mode (no service target).
+
+## Phase 9 — Build manifest + pack wikipkg
+
+1. Construct `manifest.json` in the wikipkg directory with all chapters / tours / figures / glossary path / source metadata. Use the schema in `reference/wikipkg-format.md`
+2. Run `node tools/wikipkg/dist/cli.js validate <wikipkg-dir>` — fix any errors
+3. Run `node tools/wikipkg/dist/cli.js pack <wikipkg-dir> <subject-slug>-<version-label>.wikipkg.tar.gz`
+4. Hand the resulting `.wikipkg.tar.gz` to the user with upload instructions for the codebase-wiki service
+
+**Skip Phase 9** if the user invoked the legacy static-site mode.
 
 ---
 
