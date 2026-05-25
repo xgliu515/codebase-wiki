@@ -85,3 +85,33 @@ Must include:
 - Cross-ref table showing which reference chapters each step links to
 
 See vllm-wiki/tour-00-overview.md for a working example.
+
+## Multi-tour design
+
+A single wiki can contain multiple independent trace tours, each following a different minimum-viable request. Examples for vLLM:
+
+- **`single-request`** — `llm.generate(["hi"], max_tokens=3)` — the canonical full-stack walk-through
+- **`batched`** — `llm.generate(["a","b","c"], max_tokens=3)` — batched fan-out, scheduler batching, decode interleaving
+- **`streaming`** — `llm.generate(..., stream=True)` — yield path, event handlers, terminal flush
+- **`tool-call`** — `llm.chat(..., tools=[...])` — function-calling round-trip with tool_use stop tokens
+
+Each tour is **self-contained**: its own overview file + 15-20 step files (variant tours / subsystem deep-dives can be shorter, 8-12 steps).
+
+Tours **share reference chapters** — chapter 03 on the scheduler can be referenced by both `single-request` and `batched` tours, with each tour citing different `file:line` ranges relevant to its scenario.
+
+Tours **do not import each other's steps** — duplicate ~10-15% content between tours is acceptable (each step is read linearly within its tour and benefits from being self-contained).
+
+Add tours via the codebase-wiki skill's `add-tour` mode (Phase 0 detects the keyword `add tour` / `加 tour`). One tour per skill invocation; to add multiple tours, invoke the skill multiple times.
+
+## Naming convention
+
+**Tour slugs** must be kebab-case and unique within a wiki. Pick a name that describes the scenario, not the position:
+
+- ✅ `single-request`, `batched-generate`, `streaming`, `tool-call`, `multimodal`
+- ❌ `main`, `tour1`, `first`, `default`
+
+The slug becomes the file prefix: `tour-<slug>-NN-<step>.md`. URL hashes are `#/tour-<slug>-NN-<step>`.
+
+**Reserved fallback slug**: `main` is used **only** by the automatic compat shim when migrating an old wiki (pre-multi-tour) into the group schema — the user does not normally create a tour with this slug.
+
+**Step slugs** inside a tour follow `<short-descriptor>` form (kebab-case, ~1-3 words): `cli-parse`, `prompt-fanout`, `decode-loop`. Combined: `tour-batched-09-decode-interleave.md`.
