@@ -8,6 +8,7 @@ import { createAuthRoutes, type AuthEnv } from './auth/routes.js';
 import { createAdminRegistryRoutes } from './registry/routes.js';
 import { createWikisRoutes } from './wikis/routes.js';
 import { createQuizRoutes } from './quiz/routes.js';
+import { createProgressRoutes } from './progress/routes.js';
 import { getSessionUser } from './auth/session.js';
 
 const __here = dirname(fileURLToPath(import.meta.url));
@@ -39,6 +40,7 @@ export function createApp(opts?: AppOptions) {
     app.route('/api/v1/admin', createAdminRegistryRoutes(opts.db, opts.env));
     app.route('/api/v1/wikis', createWikisRoutes(opts.db, opts.env));
     app.route('/api/v1/wikis', createQuizRoutes(opts.db, opts.env));
+    app.route('/api/v1/wikis', createProgressRoutes(opts.db));
 
     const { db, env } = opts;
     const adminLogins = new Set(env.ADMIN_GITHUB_LOGINS.split(',').map((s) => s.trim()).filter(Boolean));
