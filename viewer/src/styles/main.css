@@ -1094,9 +1094,9 @@ article > h1 { margin-top: 0; }
 
 .chapter-with-toc {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px;
-  gap: 40px;
-  max-width: 1140px;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 240px);
+  gap: 36px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 28px 32px 60px;
 }
@@ -1115,6 +1115,7 @@ article > h1 { margin-top: 0; }
   font-size: 12px;
   border-left: 1px solid var(--border);
   padding-left: 14px;
+  min-width: 0;
 }
 .chapter-toc h4 {
   font-size: 10px;
@@ -1132,12 +1133,16 @@ article > h1 { margin-top: 0; }
   color: var(--text-soft);
   border-bottom: none;
   line-height: 1.4;
+  /* Long headings should wrap, never overflow the column */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .chapter-toc a:hover { color: var(--accent); }
 .chapter-toc li.toc-h3 a { padding-left: 12px; color: var(--text-faint); font-size: 11px; }
 
-@media (max-width: 1100px) {
-  .chapter-with-toc { grid-template-columns: 1fr; padding: 28px 40px 60px; }
+/* Below this viewport width the right rail squeezes the article too tight — drop it */
+@media (max-width: 1180px) {
+  .chapter-with-toc { grid-template-columns: 1fr; padding: 28px 40px 60px; max-width: 900px; }
   .chapter-toc { display: none; }
 }
 
