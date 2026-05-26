@@ -90,15 +90,48 @@ export async function installWiki(
   });
   txn();
 
-  // FS move
+  // FS sequence designed to be crash-/cross-device-safe:
+  //   1. Move new content into place under a temporary suffix
+  //   2. If old version exists, rename it aside
+  //   3. Rename temp into final position
+  //   4. Delete the aside (best effort)
+  //
+  // On any failure: rollback by renaming aside back to final, deleting temp,
+  // and rolling back the DB row.
+  const tmpFinalDir = `${finalDir}.new`;
+  const asideDir = `${finalDir}.old`;
+
   try {
-    if (existing && options.force) {
-      await rm(finalDir, { recursive: true, force: true });
-    }
     await mkdir(dirname(finalDir), { recursive: true });
-    await rename(contentDir, finalDir);
+    await rename(contentDir, tmpFinalDir);
+
+    let hadAside = false;
+    if (existing && options.force) {
+      try {
+        await rename(finalDir, asideDir);
+        hadAside = true;
+      } catch (e: any) {
+        // If finalDir doesn't exist on disk (e.g. DB row exists but FS was cleaned),
+        // proceed without aside.
+        if (e?.code !== 'ENOENT') throw e;
+      }
+    }
+
+    try {
+      await rename(tmpFinalDir, finalDir);
+    } catch (e) {
+      // Restore aside if we moved it
+      if (hadAside) {
+        await rename(asideDir, finalDir).catch(() => {});
+      }
+      await rm(tmpFinalDir, { recursive: true, force: true }).catch(() => {});
+      throw e;
+    }
+
+    if (hadAside) {
+      await rm(asideDir, { recursive: true, force: true }).catch(() => {});
+    }
   } catch (e) {
-    // Rollback DB row to avoid orphan record
     db.prepare(`DELETE FROM wiki_versions WHERE subject_slug=? AND version_label=?`).run(
       subjectSlug,
       versionLabel,

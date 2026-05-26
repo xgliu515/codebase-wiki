@@ -33,10 +33,17 @@ export async function stageTarball(
       file: tarPath,
       cwd: contentDir,
       strict: true,
-      filter: (path) => {
+      filter: (path, entry: any) => {
         if (violation) return false;
         if (!isSafeRelative(path, contentDir)) {
           violation = { code: 'path_traversal' as const, message: `path_traversal: ${path}` };
+          return false;
+        }
+        if (entry.size && entry.size > limits.maxFileSizeBytes) {
+          violation = {
+            code: 'archive_bombsuspect' as const,
+            message: `file > ${limits.maxFileSizeBytes} bytes: ${path}`,
+          };
           return false;
         }
         fileCount += 1;
@@ -45,15 +52,6 @@ export async function stageTarball(
           return false;
         }
         return true;
-      },
-      onentry: (entry) => {
-        if (violation) return;
-        if (entry.size && entry.size > limits.maxFileSizeBytes) {
-          violation = {
-            code: 'archive_bombsuspect' as const,
-            message: `file > ${limits.maxFileSizeBytes} bytes: ${entry.path}`,
-          };
-        }
       },
     });
   } catch (e) {

@@ -80,8 +80,13 @@ export function createWikisRoutes(db: DB, env: ReadEnv) {
       )
       .get(subject, version) as { data_dir: string; manifest_json: string } | undefined;
     if (!row) return null;
-    const manifest = ManifestSchema.parse(JSON.parse(row.manifest_json));
-    return { dataDir: row.data_dir, manifest };
+    try {
+      const manifest = ManifestSchema.parse(JSON.parse(row.manifest_json));
+      return { dataDir: row.data_dir, manifest };
+    } catch (e) {
+      console.error('[wikis] corrupt manifest_json for', subject, version, e);
+      return null;  // Treated as version_not_found by callers
+    }
   };
 
   const cacheHeaders = { 'Cache-Control': 'public, max-age=31536000, immutable' };
@@ -127,8 +132,12 @@ export function createWikisRoutes(db: DB, env: ReadEnv) {
     const order = Number(c.req.param('order'));
     const step = t.steps.find((s) => s.order === order);
     if (!step) return c.json({ error: 'step_not_found' }, 404);
-    const md = await readFile(resolvePath(v.dataDir, step.path), 'utf8');
-    return c.json({ order: step.order, title: step.title, markdown: md }, 200, cacheHeaders);
+    try {
+      const md = await readFile(resolvePath(v.dataDir, step.path), 'utf8');
+      return c.json({ order: step.order, title: step.title, markdown: md }, 200, cacheHeaders);
+    } catch (e) {
+      return c.json({ error: 'storage_inconsistent', message: String(e) }, 500);
+    }
   });
 
   r.get('/:subject/:version/glossary', async (c) => {
@@ -137,8 +146,12 @@ export function createWikisRoutes(db: DB, env: ReadEnv) {
     }
     const v = loadActiveVersion(c.req.param('subject'), c.req.param('version'));
     if (!v) return c.json({ error: 'version_not_found' }, 404);
-    const raw = await readFile(resolvePath(v.dataDir, v.manifest.glossary_path), 'utf8');
-    return c.json(JSON.parse(raw), 200, cacheHeaders);
+    try {
+      const raw = await readFile(resolvePath(v.dataDir, v.manifest.glossary_path), 'utf8');
+      return c.json(JSON.parse(raw), 200, cacheHeaders);
+    } catch (e) {
+      return c.json({ error: 'storage_inconsistent', message: String(e) }, 500);
+    }
   });
 
   r.get('/:subject/:version/figures/:figureId', async (c) => {
@@ -149,11 +162,15 @@ export function createWikisRoutes(db: DB, env: ReadEnv) {
     if (!v) return c.json({ error: 'version_not_found' }, 404);
     const fig = v.manifest.figures.find((f) => f.id === c.req.param('figureId'));
     if (!fig) return c.json({ error: 'figure_not_found' }, 404);
-    const svg = await readFile(resolvePath(v.dataDir, fig.path));
-    return new Response(svg, {
-      status: 200,
-      headers: { 'Content-Type': 'image/svg+xml', ...cacheHeaders },
-    });
+    try {
+      const svg = await readFile(resolvePath(v.dataDir, fig.path));
+      return new Response(svg, {
+        status: 200,
+        headers: { 'Content-Type': 'image/svg+xml', ...cacheHeaders },
+      });
+    } catch (e) {
+      return c.json({ error: 'storage_inconsistent', message: String(e) }, 500);
+    }
   });
 
   r.get('/:subject/:version/quizzes/:chapterId', async (c) => {
@@ -165,9 +182,13 @@ export function createWikisRoutes(db: DB, env: ReadEnv) {
     const ch = v.manifest.chapters.find((x) => x.id === c.req.param('chapterId'));
     if (!ch) return c.json({ error: 'chapter_not_found' }, 404);
     if (!ch.quiz_path) return c.json({ error: 'quiz_not_found' }, 404);
-    const raw = await readFile(resolvePath(v.dataDir, ch.quiz_path), 'utf8');
-    const quiz = QuizSchema.parse(JSON.parse(raw));
-    return c.json(redactQuiz(quiz), 200, cacheHeaders);
+    try {
+      const raw = await readFile(resolvePath(v.dataDir, ch.quiz_path), 'utf8');
+      const quiz = QuizSchema.parse(JSON.parse(raw));
+      return c.json(redactQuiz(quiz), 200, cacheHeaders);
+    } catch (e) {
+      return c.json({ error: 'storage_inconsistent', message: String(e) }, 500);
+    }
   });
 
   r.get('/:subject/:version/search', (c) => {
@@ -180,6 +201,9 @@ export function createWikisRoutes(db: DB, env: ReadEnv) {
     }
     const subject = c.req.param('subject');
     const version = c.req.param('version');
+    if (!loadActiveVersion(subject, version)) {
+      return c.json({ error: 'version_not_found' }, 404);
+    }
     // Escape FTS5 syntax — wrap each token in quotes to avoid operator interpretation
     const ftsQ = q
       .split(/\s+/)

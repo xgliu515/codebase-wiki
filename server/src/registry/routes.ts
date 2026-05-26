@@ -59,15 +59,11 @@ export function createAdminRegistryRoutes(db: DB, env: RegistryEnv) {
     const validation = await validateStagedContent(result.contentDir);
     if (!validation.ok) {
       await rm(result.stageDir, { recursive: true, force: true });
-      const errorCodes = new Set(validation.errors.map((e) => e.code));
-      const status = errorCodes.has('schema_unsupported') || errorCodes.has('content_type_unsupported')
-        ? 400
-        : 400;
       return c.json({
         error: validation.errors[0]!.code,
         message: validation.errors[0]!.message,
         all_errors: validation.errors,
-      }, status);
+      }, 400);
     }
 
     const force = c.req.query('force') === 'true';

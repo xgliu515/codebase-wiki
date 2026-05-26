@@ -57,7 +57,15 @@ export function createApp(opts?: AppOptions) {
           : null,
         build: { version: '0.0.0' },
       };
-      const html = SHELL_HTML.replace('__INITIAL_JSON__', JSON.stringify(initial));
+      // Escape `</` to prevent script-tag breakout, `<!--` for HTML comment injection,
+      // and ` / ` for legacy JS engine issues. Standard inline-JSON pattern.
+      const safeJson = JSON.stringify(initial)
+        .replace(/</g, '\\u003c')
+        .replace(/>/g, '\\u003e')
+        .replace(/&/g, '\\u0026')
+        .replace(/\u2028/g, '\\u2028')
+        .replace(/\u2029/g, '\\u2029');
+      const html = SHELL_HTML.replace('__INITIAL_JSON__', safeJson);
       return c.html(html);
     };
 

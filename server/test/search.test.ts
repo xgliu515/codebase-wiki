@@ -82,7 +82,9 @@ describe('search', () => {
       headers: { cookie: `cwsess=${adminSid}` },
     });
     const res = await app.request('/api/v1/wikis/tiny-counter/v0.1.0/search?q=mutex');
+    // Fix 5: deleted/non-existent version now returns 404 version_not_found
+    expect(res.status).toBe(404);
     const body = await res.json();
-    expect(body.results).toEqual([]);
+    expect(body.error).toBe('version_not_found');
   });
 });

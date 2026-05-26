@@ -60,4 +60,20 @@ describe('HTML shell', () => {
     expect(html).toContain('"login":"tester"');
     expect(html).toContain('"is_admin":false');
   });
+
+  it('escapes </script> in injected user data (XSS guard)', async () => {
+    const u = db
+      .prepare(
+        `INSERT INTO users (github_id, github_login, display_name, created_at, last_seen_at)
+         VALUES (?, ?, ?, ?, ?) RETURNING id`,
+      )
+      .get(99, 'attacker', '</script><script>alert(1)</script>', Date.now(), Date.now()) as { id: number };
+    const sid = createSession(db, u.id);
+    const res = await app.request('/', { headers: { cookie: `cwsess=${sid}` } });
+    const html = await res.text();
+    // The raw </script> must NOT appear in the injected JSON
+    expect(html).not.toContain('</script><script>alert');
+    // Must be escaped as <
+    expect(html).toContain('\\u003c/script\\u003e');
+  });
 });
