@@ -5,6 +5,7 @@ import { getSessionUser } from '../auth/session.js';
 import { stageTarball } from './upload.js';
 import { defaultLimits } from './safety.js';
 import { validateStagedContent } from './validate.js';
+import { installWiki } from './install.js';
 import { rm } from 'node:fs/promises';
 
 export type RegistryEnv = {
@@ -68,17 +69,29 @@ export function createAdminRegistryRoutes(db: DB, env: RegistryEnv) {
       }, status);
     }
 
-    // Task 8 will continue from here: atomic install + DB write
+    const force = c.req.query('force') === 'true';
+    const install = await installWiki(
+      db,
+      result.contentDir,
+      validation.manifest,
+      u.user_id,
+      env.DATA_DIR,
+      { force },
+    );
+
+    // Clean staging regardless (contentDir was either renamed away or we should delete it)
     await rm(result.stageDir, { recursive: true, force: true });
+
+    if (!install.ok) {
+      const status = install.error === 'wiki_version_exists' ? 409 : 500;
+      return c.json({ error: install.error, message: install.message }, status);
+    }
+
     return c.json({
       ok: true,
-      manifest_summary: {
-        subject: validation.manifest.subject.slug,
-        version: validation.manifest.wiki_version.label,
-        chapters: validation.manifest.chapters.length,
-      },
-      note: 'validation passed; install in Task 8',
-    });
+      subject: install.subject,
+      version: install.version,
+    }, 201);
   });
 
   return r;

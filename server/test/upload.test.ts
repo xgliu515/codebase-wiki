@@ -93,7 +93,7 @@ describe('POST /api/v1/admin/wikis (upload staging)', () => {
       headers: { 'content-type': 'application/gzip', cookie: `cwsess=${adminSid}` },
       body: sampleTarball,
     });
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.ok).toBe(true);
   });
@@ -163,18 +163,17 @@ describe('POST /api/v1/admin/wikis (upload staging)', () => {
     }
   });
 
-  it('returns manifest summary for valid wikipkg', async () => {
+  it('returns subject+version for valid wikipkg', async () => {
     const res = await app.request('/api/v1/admin/wikis', {
       method: 'POST',
       headers: { 'content-type': 'application/gzip', cookie: `cwsess=${adminSid}` },
       body: sampleTarball,
     });
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.ok).toBe(true);
-    expect(body.manifest_summary.subject).toBe('tiny-counter');
-    expect(body.manifest_summary.version).toBe('v0.1.0');
-    expect(body.manifest_summary.chapters).toBe(3);
+    expect(body.subject).toBe('tiny-counter');
+    expect(body.version).toBe('v0.1.0');
   });
 
   it('rejects malformed tarball', async () => {
@@ -187,5 +186,53 @@ describe('POST /api/v1/admin/wikis (upload staging)', () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toBe('invalid_archive');
+  });
+
+  it('persists wiki_versions + subjects rows', async () => {
+    const res = await app.request('/api/v1/admin/wikis', {
+      method: 'POST',
+      headers: { 'content-type': 'application/gzip', cookie: `cwsess=${adminSid}` },
+      body: sampleTarball,
+    });
+    expect(res.status).toBe(201);
+
+    const v = db
+      .prepare(`SELECT * FROM wiki_versions WHERE subject_slug=? AND version_label=?`)
+      .get('tiny-counter', 'v0.1.0');
+    expect(v).toBeDefined();
+    const s = db.prepare(`SELECT latest_version FROM subjects WHERE slug=?`).get('tiny-counter') as { latest_version: string };
+    expect(s.latest_version).toBe('v0.1.0');  // auto-set since first version
+  });
+
+  it('rejects re-upload of same (subject, version) with 409', async () => {
+    // First upload
+    await app.request('/api/v1/admin/wikis', {
+      method: 'POST',
+      headers: { 'content-type': 'application/gzip', cookie: `cwsess=${adminSid}` },
+      body: sampleTarball,
+    });
+    // Second upload (no force)
+    const res2 = await app.request('/api/v1/admin/wikis', {
+      method: 'POST',
+      headers: { 'content-type': 'application/gzip', cookie: `cwsess=${adminSid}` },
+      body: sampleTarball,
+    });
+    expect(res2.status).toBe(409);
+    const body = await res2.json();
+    expect(body.error).toBe('wiki_version_exists');
+  });
+
+  it('?force=true overwrites existing version', async () => {
+    await app.request('/api/v1/admin/wikis', {
+      method: 'POST',
+      headers: { 'content-type': 'application/gzip', cookie: `cwsess=${adminSid}` },
+      body: sampleTarball,
+    });
+    const res2 = await app.request('/api/v1/admin/wikis?force=true', {
+      method: 'POST',
+      headers: { 'content-type': 'application/gzip', cookie: `cwsess=${adminSid}` },
+      body: sampleTarball,
+    });
+    expect(res2.status).toBe(201);
   });
 });
