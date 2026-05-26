@@ -29,6 +29,56 @@ export function createAdminRegistryRoutes(db: DB, env: RegistryEnv) {
     return u;
   };
 
+  r.get('/wikis', (c) => {
+    const sid = getCookie(c, 'cwsess');
+    const u = requireAdmin(sid);
+    if (!u) return c.json({ error: 'forbidden', message: 'admin only' }, 403);
+
+    const subjects = db
+      .prepare(
+        `SELECT slug, name, description, language, content_type, latest_version, created_at, updated_at
+         FROM subjects ORDER BY name`,
+      )
+      .all() as Array<{
+        slug: string;
+        name: string;
+        description: string | null;
+        language: string;
+        content_type: string;
+        latest_version: string | null;
+        created_at: number;
+        updated_at: number;
+      }>;
+
+    const versions = db
+      .prepare(
+        `SELECT subject_slug, version_label, schema_version, uploaded_at, uploaded_by, deleted_at
+         FROM wiki_versions ORDER BY uploaded_at DESC`,
+      )
+      .all() as Array<{
+        subject_slug: string;
+        version_label: string;
+        schema_version: string;
+        uploaded_at: number;
+        uploaded_by: number;
+        deleted_at: number | null;
+      }>;
+
+    const versionsBySubject = new Map<string, typeof versions>();
+    for (const v of versions) {
+      const list = versionsBySubject.get(v.subject_slug);
+      if (list) list.push(v);
+      else versionsBySubject.set(v.subject_slug, [v]);
+    }
+
+    return c.json({
+      subjects: subjects.map((s) => ({
+        ...s,
+        versions: versionsBySubject.get(s.slug) ?? [],
+      })),
+    });
+  });
+
   r.post('/wikis', async (c) => {
     const sid = getCookie(c, 'cwsess');
     const u = requireAdmin(sid);

@@ -9,6 +9,7 @@ import { renderTourOverview, renderTourStep } from './pages/TourStep.js';
 import { renderSearch } from './pages/Search.js';
 import { renderMe } from './pages/Me.js';
 import { renderAdminUpload } from './pages/AdminUpload.js';
+import { renderAdminConsole } from './pages/AdminConsole.js';
 import { renderGlossary } from './pages/Glossary.js';
 
 const root = document.querySelector<HTMLElement>('#app');
@@ -66,7 +67,7 @@ async function renderForRoute(route: Route): Promise<HTMLElement> {
     case 'search':     return await renderSearch(route.subject, route.version, route.q);
     case 'glossary':   return await renderGlossary(route.subject, route.version);
     case 'me':         return await renderMe();
-    case 'admin':      return await renderAdminUpload();
+    case 'admin':      return await renderAdminConsole();
     case 'admin_upload': return await renderAdminUpload();
     case 'notfound':   return renderNotFound(route.pathname);
   }

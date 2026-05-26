@@ -64,7 +64,7 @@ export async function renderChapter(
     ) : h('span'),
   ) : null;
 
-  const main = h('article', { class: 'chapter' },
+  const article = h('article', { class: 'chapter' },
     h('h1', null, chapter.title),
     content,
     h('div', { class: 'chapter-actions' }, ...actionsRow),
@@ -72,7 +72,31 @@ export async function renderChapter(
     await renderAddendaList({ subject, version, chapterId }),
   );
 
+  // Build a "On this page" TOC from h2/h3 in rendered content
+  const toc = buildToc(content);
+
+  const main = h('div', { class: 'chapter-with-toc' }, article, toc);
   return h('div', { class: 'layout' }, sidebar, main);
+}
+
+function buildToc(content: HTMLElement): HTMLElement | null {
+  const headings = content.querySelectorAll<HTMLElement>('h2[id], h3[id]');
+  if (headings.length === 0) return null;
+  const items: HTMLElement[] = [];
+  headings.forEach((hd) => {
+    const id = hd.id;
+    // Heading rendered as: text + <a class="heading-anchor">#</a> — clone text part only
+    const clone = hd.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll('.heading-anchor').forEach((a) => a.remove());
+    const text = clone.textContent?.trim() ?? id;
+    items.push(h('li', { class: `toc-${hd.tagName.toLowerCase()}` },
+      h('a', { href: `#${id}` }, text),
+    ));
+  });
+  return h('aside', { class: 'chapter-toc' },
+    h('h4', null, 'On this page'),
+    h('ul', null, ...items),
+  );
 }
 
 export async function renderQuizPage(

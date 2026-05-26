@@ -20,8 +20,8 @@ export function renderAuthButton(): HTMLElement {
   return h('div', { class: 'auth-menu' },
     u.avatar_url && h('img', { class: 'avatar', src: u.avatar_url, alt: u.login }),
     h('span', { class: 'login' }, u.login),
-    u.is_admin && h('a', { class: 'admin-link', href: '/admin/upload',
-      onclick: (e: MouseEvent) => { e.preventDefault(); history.pushState({}, '', '/admin/upload'); window.dispatchEvent(new Event('cw:route')); }
+    u.is_admin && h('a', { class: 'admin-link', href: '/admin',
+      onclick: (e: MouseEvent) => { e.preventDefault(); history.pushState({}, '', '/admin'); window.dispatchEvent(new Event('cw:route')); }
     }, 'Admin'),
     h('a', { class: 'logout-link', href: '#', onclick: (e: MouseEvent) => { e.preventDefault(); void onLogout(); } }, 'Logout'),
   );

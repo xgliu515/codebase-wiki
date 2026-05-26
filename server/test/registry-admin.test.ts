@@ -60,6 +60,42 @@ describe('admin registry endpoints', () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
+  describe('GET /api/v1/admin/wikis (admin console list)', () => {
+    it('requires admin role', async () => {
+      const userRow = db
+        .prepare(
+          `INSERT INTO users (github_id, github_login, created_at, last_seen_at)
+           VALUES (?, ?, ?, ?) RETURNING id`,
+        )
+        .get(101, 'regular', Date.now(), Date.now()) as { id: number };
+      const userSid = createSession(db, userRow.id);
+      const res = await app.request('/api/v1/admin/wikis', {
+        headers: { cookie: `cwsess=${userSid}` },
+      });
+      expect(res.status).toBe(403);
+    });
+
+    it('lists subjects with all versions including soft-deleted', async () => {
+      // Soft delete the uploaded version
+      await app.request('/api/v1/admin/wikis/tiny-counter/v0.1.0', {
+        method: 'DELETE',
+        headers: { cookie: `cwsess=${adminSid}` },
+      });
+      const res = await app.request('/api/v1/admin/wikis', {
+        headers: { cookie: `cwsess=${adminSid}` },
+      });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.subjects).toHaveLength(1);
+      const subj = body.subjects[0];
+      expect(subj.slug).toBe('tiny-counter');
+      expect(subj.versions).toHaveLength(1);
+      expect(subj.versions[0].version_label).toBe('v0.1.0');
+      expect(subj.versions[0].deleted_at).not.toBeNull();
+      expect(subj.latest_version).toBe('v0.1.0');
+    });
+  });
+
   describe('DELETE /api/v1/admin/wikis/:subject/:version', () => {
     it('soft-deletes a version', async () => {
       const res = await app.request('/api/v1/admin/wikis/tiny-counter/v0.1.0', {

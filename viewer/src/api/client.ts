@@ -121,4 +121,43 @@ export const api = {
     }
     return res.json();
   },
+
+  adminListAll: () =>
+    jget<{
+      subjects: Array<{
+        slug: string;
+        name: string;
+        description: string | null;
+        language: string;
+        content_type: string;
+        latest_version: string | null;
+        created_at: number;
+        updated_at: number;
+        versions: Array<{
+          subject_slug: string;
+          version_label: string;
+          schema_version: string;
+          uploaded_at: number;
+          uploaded_by: number;
+          deleted_at: number | null;
+        }>;
+      }>;
+    }>('/api/v1/admin/wikis'),
+
+  adminDeleteWiki: async (subject: string, version: string): Promise<void> => {
+    const res = await fetch(`/api/v1/admin/wikis/${subject}/${version}`, {
+      method: 'DELETE',
+      credentials: 'same-origin',
+    });
+    if (!res.ok) {
+      const body = await res.json();
+      throw new ApiError(res.status, body.error ?? 'delete_failed', body.message ?? 'delete failed');
+    }
+  },
+
+  adminSetLatest: (subject: string, version: string) =>
+    jpost<{ ok: true; subject: string; latest_version: string }>(
+      `/api/v1/admin/wikis/${subject}/${version}/latest`,
+      {},
+    ),
 };
