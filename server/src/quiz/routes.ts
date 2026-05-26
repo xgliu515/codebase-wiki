@@ -35,7 +35,7 @@ export function createQuizRoutes(db: DB, env: Record<string, string | undefined>
     const version = c.req.param('version');
     const chapterId = c.req.param('chapterId');
 
-    const rlKey = `${u.user_id}:attempt:${subject}/${version}/${chapterId}`;
+    const rlKey = `${u.user_id}:attempt:${subject}/${chapterId}`;
     if (!rl.allow(rlKey, 10000, attemptLimit)) {
       c.header('Retry-After', '10');
       return c.json({ error: 'rate_limited', message: 'too many attempts' }, 429);
@@ -111,7 +111,8 @@ export function createQuizRoutes(db: DB, env: Record<string, string | undefined>
     const subject = c.req.param('subject');
     const version = c.req.param('version');
     const chapterId = c.req.param('chapterId');
-    const limit = Math.min(100, Math.max(1, Number(c.req.query('limit') ?? 20)));
+    const rawLimit = parseInt(c.req.query('limit') ?? '', 10);
+    const limit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(1, rawLimit)) : 20;
 
     const rows = db
       .prepare(

@@ -128,4 +128,21 @@ describe('addenda', () => {
     expect(body.addenda[1].question).toBe('first');
     expect(body.addenda[0].author_login).toBe('student');
   });
+
+  it('rejects ?limit=<non-numeric> by falling back to default 20', async () => {
+    // Should not crash — falls back to default, returns 200
+    const res = await app.request(
+      '/api/v1/wikis/tiny-counter/v0.1.0/chapters/intro/addenda?limit=abc',
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it('rejects ?before=<non-numeric> with 400 invalid_param', async () => {
+    const res = await app.request(
+      '/api/v1/wikis/tiny-counter/v0.1.0/chapters/intro/addenda?before=notanumber',
+    );
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe('invalid_param');
+  });
 });

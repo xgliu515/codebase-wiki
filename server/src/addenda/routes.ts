@@ -29,7 +29,8 @@ export function createAddendaRoutes(
     const subject = c.req.param('subject');
     const version = c.req.param('version');
     const chapterId = c.req.param('chapterId');
-    const limit = Math.min(100, Math.max(1, Number(c.req.query('limit') ?? 20)));
+    const rawLimit = parseInt(c.req.query('limit') ?? '', 10);
+    const limit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(1, rawLimit)) : 20;
     const before = c.req.query('before');
     const params: (string | number)[] = [subject, version, chapterId];
     let sql = `SELECT a.id, a.question, a.answer, a.created_at, u.github_login AS author_login
@@ -37,8 +38,12 @@ export function createAddendaRoutes(
                WHERE a.subject_slug=? AND a.version_label=? AND a.chapter_id=?
                  AND a.hidden_at IS NULL`;
     if (before) {
+      const beforeNum = parseInt(before, 10);
+      if (!Number.isFinite(beforeNum)) {
+        return c.json({ error: 'invalid_param', message: 'before must be numeric' }, 400);
+      }
       sql += ` AND a.created_at < ?`;
-      params.push(Number(before));
+      params.push(beforeNum);
     }
     sql += ` ORDER BY a.created_at DESC LIMIT ?`;
     params.push(limit);
