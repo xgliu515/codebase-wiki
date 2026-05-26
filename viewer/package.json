@@ -1,0 +1,19 @@
+{
+  "name": "@codebase-wiki/viewer",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "esbuild src/main.ts --bundle --outfile=dist/bundle.js --sourcemap --watch --servedir=. --serve=8080",
+    "build": "tsc --noEmit && esbuild src/main.ts --bundle --outfile=dist/bundle.js --sourcemap --minify",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@codebase-wiki/shared": "*",
+    "marked": "^14.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.4.0"
+  }
+}

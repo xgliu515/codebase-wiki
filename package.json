@@ -5,7 +5,8 @@
   "workspaces": [
     "shared",
     "tools/*",
-    "server"
+    "server",
+    "viewer"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
