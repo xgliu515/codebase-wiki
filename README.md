@@ -59,6 +59,20 @@ DATA_DIR=/var/lib/cwiki \
 
 Visit `http://localhost:3000` (or your host). Sign in with GitHub. As admin, drop a `.wikipkg.tar.gz` into `/admin/upload`. Other users browse + learn + quiz.
 
+### Local testing without a real GitHub OAuth app
+
+For dev / smoke-test on your laptop, set `DEV_ADMIN_LOGIN=<any-login>` and skip the OAuth dance. On startup the server upserts a synthetic user and creates a session, then prints a one-line JS snippet to stdout:
+
+```
+[dev] DEV_ADMIN_LOGIN=demo_admin auto-seeded.
+[dev] is_admin=true (set ADMIN_GITHUB_LOGINS=demo_admin for admin role).
+[dev] Sign in by pasting in browser DevTools console:
+        document.cookie = 'cwsess=<random-hex>; path=/'; location.reload();
+[dev] WARNING: DEV_ADMIN_LOGIN bypasses OAuth — do NOT set in production.
+```
+
+Open the URL, paste the snippet into the browser console, refresh → signed in. `GITHUB_CLIENT_ID/SECRET` can still be required (the server fails fast on missing env), but you can use placeholder values like `stub`. **Never set `DEV_ADMIN_LOGIN` in production** — it's a hard OAuth bypass.
+
 For full design context see `docs/specs/2026-05-25-codebase-wiki-service-design.md`.
 
 ## What's in the wikipkg
