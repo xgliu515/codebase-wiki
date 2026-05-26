@@ -77,7 +77,7 @@ describe('auth', () => {
   });
 
   describe('GET /api/v1/auth/github/start', () => {
-    it('redirects to GitHub with state in cookie', async () => {
+    it('redirects to GitHub with state in cookie (real OAuth path)', async () => {
       const res = await app.request('/api/v1/auth/github/start');
       expect(res.status).toBe(302);
       const loc = res.headers.get('location') ?? '';
@@ -86,6 +86,35 @@ describe('auth', () => {
       expect(loc).toContain('state=');
       const setCookie = res.headers.get('set-cookie') ?? '';
       expect(setCookie).toMatch(/cwoauth=/);
+    });
+
+    it('bypasses OAuth and sets cwsess cookie when DEV_ADMIN_LOGIN is set', async () => {
+      const devApp = createApp({
+        db,
+        env: {
+          GITHUB_CLIENT_ID: 'x',
+          GITHUB_CLIENT_SECRET: 'x',
+          OAUTH_REDIRECT_URI: 'http://x',
+          ADMIN_GITHUB_LOGINS: 'demo_admin',
+          DEV_ADMIN_LOGIN: 'demo_admin',
+          DATA_DIR: tmpDir,
+          PUBLIC_READ: 'true',
+        },
+      });
+      const res = await devApp.request('/api/v1/auth/github/start');
+      expect(res.status).toBe(302);
+      expect(res.headers.get('location')).toBe('/');
+      const setCookie = res.headers.get('set-cookie') ?? '';
+      expect(setCookie).toMatch(/cwsess=[0-9a-f]{64}/);
+      expect(setCookie).not.toMatch(/cwoauth=/);
+
+      // Round-trip: the cookie just set must let /auth/me return demo_admin
+      const sid = setCookie.match(/cwsess=([0-9a-f]+)/)![1]!;
+      const me = await devApp.request('/api/v1/auth/me', { headers: { cookie: `cwsess=${sid}` } });
+      expect(me.status).toBe(200);
+      const body = await me.json();
+      expect(body.login).toBe('demo_admin');
+      expect(body.is_admin).toBe(true);
     });
   });
 

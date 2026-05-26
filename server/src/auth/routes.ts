@@ -8,6 +8,7 @@ import {
   generateState,
 } from './oauth.js';
 import { createSession, deleteSession, getSessionUser } from './session.js';
+import { seedDevAdminIfEnabled } from './dev.js';
 
 export type AuthEnv = {
   GITHUB_CLIENT_ID: string;
@@ -15,6 +16,7 @@ export type AuthEnv = {
   OAUTH_REDIRECT_URI: string;
   ADMIN_GITHUB_LOGINS: string;
   COOKIE_SECURE?: string;
+  DEV_ADMIN_LOGIN?: string;
 };
 
 export function createAuthRoutes(db: DB, env: AuthEnv) {
@@ -37,6 +39,21 @@ export function createAuthRoutes(db: DB, env: AuthEnv) {
   });
 
   r.get('/github/start', (c) => {
+    // Local-dev OAuth bypass: when DEV_ADMIN_LOGIN is set, skip the GitHub
+    // round-trip entirely. Seed the synthetic user, set the session cookie,
+    // and bounce back to '/'. Real OAuth flow resumes when the env is unset.
+    const sid = seedDevAdminIfEnabled(db, env);
+    if (sid) {
+      setCookie(c, 'cwsess', sid, {
+        httpOnly: true,
+        sameSite: 'Lax',
+        secure: cookieSecure,
+        maxAge: 30 * 24 * 3600,
+        path: '/',
+      });
+      return c.redirect('/', 302);
+    }
+
     const state = generateState();
     setCookie(c, 'cwoauth', state, {
       httpOnly: true,

@@ -2,7 +2,6 @@ import { serve } from '@hono/node-server';
 import { createApp } from './app.js';
 import { openDatabase } from './db/connection.js';
 import { runMigrations } from './db/migrations.js';
-import { seedDevAdminIfEnabled } from './auth/dev.js';
 import { resolve } from 'node:path';
 import { mkdirSync } from 'node:fs';
 
@@ -21,6 +20,8 @@ mkdirSync(DATA_DIR, { recursive: true });
 const db = openDatabase(resolve(DATA_DIR, 'wiki-server.db'));
 runMigrations(db);
 
+const DEV_ADMIN_LOGIN = process.env.DEV_ADMIN_LOGIN?.trim() || undefined;
+
 const app = createApp({
   db,
   env: {
@@ -31,24 +32,19 @@ const app = createApp({
     DATA_DIR,
     PUBLIC_READ: process.env.PUBLIC_READ ?? 'true',
     COOKIE_SECURE: process.env.COOKIE_SECURE ?? 'false',
+    ...(DEV_ADMIN_LOGIN ? { DEV_ADMIN_LOGIN } : {}),
   },
 });
-
-const devSessionId = seedDevAdminIfEnabled(db, { DEV_ADMIN_LOGIN: process.env.DEV_ADMIN_LOGIN });
 
 const port = Number(process.env.PORT ?? 3000);
 serve({ fetch: app.fetch, port }, (info) => {
   console.log(`codebase-wiki server listening on http://localhost:${info.port}`);
-  if (devSessionId) {
-    const login = process.env.DEV_ADMIN_LOGIN!.trim();
+  if (DEV_ADMIN_LOGIN) {
     const adminSet = new Set(
       (process.env.ADMIN_GITHUB_LOGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
     );
-    const isAdmin = adminSet.has(login);
-    console.log(`[dev] DEV_ADMIN_LOGIN=${login} auto-seeded.`);
-    console.log(`[dev] is_admin=${isAdmin} (set ADMIN_GITHUB_LOGINS=${login} for admin role).`);
-    console.log(`[dev] Sign in by pasting in browser DevTools console:`);
-    console.log(`        document.cookie = 'cwsess=${devSessionId}; path=/'; location.reload();`);
-    console.log(`[dev] WARNING: DEV_ADMIN_LOGIN bypasses OAuth — do NOT set in production.`);
+    const isAdmin = adminSet.has(DEV_ADMIN_LOGIN);
+    console.log(`[dev] DEV_ADMIN_LOGIN=${DEV_ADMIN_LOGIN} — "Sign in with GitHub" bypasses OAuth and grants this login (is_admin=${isAdmin}).`);
+    console.log(`[dev] WARNING: do NOT set DEV_ADMIN_LOGIN in production.`);
   }
 });
