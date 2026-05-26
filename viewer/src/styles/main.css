@@ -1097,7 +1097,9 @@ article > h1 { margin-top: 0; }
   align-items: flex-start;
   justify-content: space-between;
   gap: 40px;
-  padding: 28px 32px 60px;
+  /* Asymmetric padding: left has room from the sidebar, right is just enough
+     to keep the TOC off the window scrollbar without wasting space. */
+  padding: 28px 16px 60px 40px;
   /* No max-width / margin auto here — let main column own the full width.
      Article and TOC are fixed-shape; the gap between them is the breathing space. */
 }
