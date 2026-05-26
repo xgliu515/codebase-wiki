@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "esbuild src/main.ts --bundle --outfile=dist/bundle.js --sourcemap --watch --servedir=. --serve=8080",
-    "build": "tsc --noEmit && esbuild src/main.ts --bundle --outfile=dist/bundle.js --sourcemap --minify",
+    "build": "tsc --noEmit && esbuild src/main.ts --bundle --outfile=dist/bundle.js --sourcemap --minify && cp src/styles/main.css dist/main.css",
     "check": "tsc --noEmit"
   },
   "dependencies": {
