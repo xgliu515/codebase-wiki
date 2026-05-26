@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { DB } from './db/connection.js';
 import { createAuthRoutes, type AuthEnv } from './auth/routes.js';
+import { createAdminRegistryRoutes } from './registry/routes.js';
 
 export type ServerEnv = AuthEnv & {
   DATA_DIR: string;
@@ -25,6 +26,7 @@ export function createApp(opts?: AppOptions) {
 
   if (opts) {
     app.route('/api/v1/auth', createAuthRoutes(opts.db, opts.env));
+    app.route('/api/v1/admin', createAdminRegistryRoutes(opts.db, opts.env));
   }
 
   return app;
