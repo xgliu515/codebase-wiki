@@ -170,5 +170,35 @@ export function createWikisRoutes(db: DB, env: ReadEnv) {
     return c.json(redactQuiz(quiz), 200, cacheHeaders);
   });
 
+  r.get('/:subject/:version/search', (c) => {
+    if (!requireAuth(getCookie(c, 'cwsess'))) {
+      return c.json({ error: 'unauthorized' }, 401);
+    }
+    const q = c.req.query('q');
+    if (!q || q.length < 1 || q.length > 200) {
+      return c.json({ error: 'invalid_query', message: 'q must be 1-200 chars' }, 400);
+    }
+    const subject = c.req.param('subject');
+    const version = c.req.param('version');
+    // Escape FTS5 syntax — wrap each token in quotes to avoid operator interpretation
+    const ftsQ = q
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((t) => '"' + t.replace(/"/g, '""') + '"')
+      .join(' ');
+    const rows = db
+      .prepare(
+        `SELECT doc_type, doc_id,
+                snippet(content_fts, 5, '<mark>', '</mark>', '…', 12) AS snippet
+         FROM content_fts
+         WHERE content_fts MATCH ?
+           AND subject_slug = ?
+           AND version_label = ?
+         LIMIT 30`,
+      )
+      .all(ftsQ, subject, version);
+    return c.json({ results: rows });
+  });
+
   return r;
 }

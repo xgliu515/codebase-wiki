@@ -6,6 +6,7 @@ import { stageTarball } from './upload.js';
 import { defaultLimits } from './safety.js';
 import { validateStagedContent } from './validate.js';
 import { installWiki } from './install.js';
+import { deleteVersionIndex } from './fts.js';
 import { rm } from 'node:fs/promises';
 
 export type RegistryEnv = {
@@ -110,6 +111,7 @@ export function createAdminRegistryRoutes(db: DB, env: RegistryEnv) {
     db.prepare(
       `UPDATE wiki_versions SET deleted_at=? WHERE subject_slug=? AND version_label=?`,
     ).run(Date.now(), subject, version);
+    deleteVersionIndex(db, subject, version);
     return c.json({ ok: true });
   });
 

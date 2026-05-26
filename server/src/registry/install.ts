@@ -2,6 +2,7 @@ import { rename, mkdir, rm } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import type { DB } from '../db/connection.js';
 import type { Manifest } from '@codebase-wiki/shared';
+import { indexVersion } from './fts.js';
 
 export type InstallResult =
   | { ok: true; dataDir: string; subject: string; version: string }
@@ -103,6 +104,14 @@ export async function installWiki(
       versionLabel,
     );
     return { ok: false, error: 'storage_failed', message: String(e) };
+  }
+
+  try {
+    await indexVersion(db, subjectSlug, versionLabel, finalDir, manifest);
+  } catch (e) {
+    // Indexing failed — but content is on disk + row in DB. Log and move on.
+    // The wiki is still readable; only search is degraded for this version.
+    console.error('[fts] indexing failed:', e);
   }
 
   return { ok: true, dataDir: finalDir, subject: subjectSlug, version: versionLabel };
