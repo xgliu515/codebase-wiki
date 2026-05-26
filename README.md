@@ -1,61 +1,79 @@
 # codebase-wiki
 
-A Claude Code skill for generating **problem-first interactive learning wikis** for any software codebase.
+A Claude Code skill for generating **problem-first interactive learning wikis** for any software codebase, plus a self-hostable **service** that loads them.
 
-Produces:
-- **10-15 reference chapters** covering subsystems comprehensively
-- **15-20 step trace tour**: narrative-style, problem → naive → why fails → actual design, following one minimum-viable real request through the entire stack
-- **SVG figures**: hand-crafted, theme-aware, scale cleanly
-- **Interactive web viewer**: sidebar nav, glossary panel with recursive expansion, full-text search, GitHub deep-links locked to a specific commit
-- **GitHub Pages ready**: one-command deploy
+Two halves, one repo:
 
-The methodology was developed and battle-tested while building wikis for vLLM and other projects — see [xgliu515/codebase-wikis](https://xgliu515.github.io/codebase-wikis/) for what the output looks like.
+1. **The skill** (`SKILL.md` + `templates/` + `reference/`) — Claude reads this to generate a `.wikipkg.tar.gz` package containing 10-15 reference chapters + a single-request narrative trace tour + glossary + per-chapter MCQ quizzes + SVG figures.
+2. **The service** (`server/` + `viewer/` + `shared/` + `tools/wikipkg/`) — Node + Hono + SQLite + TS viewer. Admin uploads a wikipkg; users browse, take quizzes, track progress, post Q&A. Self-hostable, GitHub OAuth.
 
-## Install
+The methodology was developed and battle-tested while building wikis for vLLM and other projects.
+
+> **Looking for the old self-contained static-site flow** (HTML+JS wiki for GitHub Pages, no service required)?
+> It lives on the **`legacy-static-site` branch** (last tag: `v1-last`). That branch is in maintenance mode (bug fixes only).
+> ```bash
+> git clone -b legacy-static-site https://github.com/xgliu515/codebase-wiki.git ~/.claude/skills/codebase-wiki
+> ```
+
+---
+
+## Install the skill (Claude Code)
 
 ```bash
-# Clone into Claude Code's skills directory
+# Clone the new (service + wikipkg) flow
 git clone https://github.com/xgliu515/codebase-wiki.git ~/.claude/skills/codebase-wiki
 ```
 
 Restart Claude Code or open a new session. Then in any conversation:
 
 ```
-I want to generate a wiki for <some codebase path>. Use the codebase-wiki skill.
+I want to generate a wikipkg for the codebase at /path/to/project. Use the codebase-wiki skill.
 ```
 
-Or invoke via slash command if your harness supports it:
+Or invoke explicitly via slash command:
 
 ```
 /codebase-wiki
 ```
 
-Claude will read `SKILL.md` and walk you through the 7 phases (input → exploration → trace design → content generation → web setup → SVG upgrade → publish).
+Claude reads `SKILL.md` and walks you through 7 phases (inputs → explore → trace tour → generate content → SVG → glossary → quizzes → pack).
 
-## What it generates
+The final artifact is a single `.wikipkg.tar.gz` that you upload to your service instance.
 
-```
-your-project-wiki/
-├── README.md                     # disclaimer + version lock + live link
-├── LICENSE                       # MIT
-├── index.html                    # web viewer entry
-├── 01-architecture-overview.md   # reference chapter 1
-├── 02-...md                      # ...
-├── 12-glossary-and-faq.md        # last chapter is always glossary + FAQ
-├── tour-00-overview.md           # tour entry + step list
-├── tour-01-...md                 # tour step 1
-├── tour-02-...md                 # ...
-└── web/
-    ├── css/style.css
-    ├── serve.sh                  # local server starter
-    └── js/                       # vanilla ES modules, no build step
-        ├── app.js
-        ├── chapters.js           # PER-PROJECT: editable metadata
-        ├── architecture.js       # PER-PROJECT: 4-layer SVG
-        ├── content.js, sidebar.js, search.js, glossary.js, diagrams.js, utils.js
+## Run the service
+
+```bash
+git clone https://github.com/xgliu515/codebase-wiki.git
+cd codebase-wiki
+npm install && npm run build
+
+DATA_DIR=/var/lib/cwiki \
+  GITHUB_CLIENT_ID=<oauth-app-id> \
+  GITHUB_CLIENT_SECRET=<oauth-app-secret> \
+  OAUTH_REDIRECT_URI=https://your-host/api/v1/auth/github/callback \
+  ADMIN_GITHUB_LOGINS=your_github_login \
+  PUBLIC_READ=true \
+  COOKIE_SECURE=true \
+  node server/dist/server.js
 ```
 
-After `git push`, enable GitHub Pages and your wiki goes live at `https://<owner>.github.io/<repo>/`.
+Visit `http://localhost:3000` (or your host). Sign in with GitHub. As admin, drop a `.wikipkg.tar.gz` into `/admin/upload`. Other users browse + learn + quiz.
+
+For full design context see `docs/specs/2026-05-25-codebase-wiki-service-design.md`.
+
+## What's in the wikipkg
+
+```
+manifest.json                  # data contract; schema in reference/wikipkg-format.md
+chapters/<slug>.md             # 10-15 reference chapters
+tours/<tour-slug>/00-overview.md
+tours/<tour-slug>/01-<step>.md ... NN-<step>.md
+quizzes/<chapter-slug>.json    # 3-8 MCQ per chapter
+figures/<slug>.svg
+glossary.json
+```
+
+The service's TS viewer renders all of this, plus tracks per-user progress, grades MCQ answers, and accepts addenda (Q&A) per chapter.
 
 ## Methodology in one sentence
 
@@ -65,7 +83,8 @@ See `reference/8-section-template.md` for the exact tour-step template. See `ref
 
 ## Status
 
-v1 — focused on the workflow that produced vllm-wiki. Open to issues/PRs that generalize to more codebase shapes (databases, web frameworks, ML libraries, etc.).
+- `main` (v2.x) — wikipkg + service. Active development.
+- `legacy-static-site` (v1.x) — old static-site mode. Maintenance only.
 
 ## License
 

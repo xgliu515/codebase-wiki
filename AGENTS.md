@@ -1,74 +1,71 @@
 # codebase-wiki — guide for Claude / human collaborators
 
-This repo is a **Claude Code skill**, not an application. It generates
-problem-first interactive learning wikis for arbitrary codebases. The
-output is a mono-repo of generated wikis (HTML + markdown + vanilla
-ES modules); this repo holds the methodology + templates + skill
-instructions.
+This repo has two halves:
+
+1. **The skill** — `SKILL.md` + `templates/` + `reference/`. Claude reads these to generate `.wikipkg.tar.gz` packages from a target codebase.
+2. **The service** — `server/` + `viewer/` + `shared/` + `tools/wikipkg/`. Node + Hono + SQLite + TS viewer. Consumes the packages.
+
+> **Legacy notice**: the previous static-site flow (self-contained HTML+JS wiki for GitHub Pages, no service) lives on the `legacy-static-site` branch (tag `v1-last`). That branch is in maintenance mode. Main is the new wikipkg + service architecture (tag `v2.0` for the cutover).
 
 ## Entry point
 
-`SKILL.md` — read this first when invoked. It describes the 7 phases
-of wiki generation + the import flow + the Q&A addenda flow (4 distinct
-entry modes total).
+`SKILL.md` — read this first when invoked. It describes the 7 phases of wikipkg generation.
 
 ## Repo layout
 
 ```
-SKILL.md                — main skill spec (entry mode dispatch + phases)
-reference/              — methodology + on-disk contracts
-  wikipkg-format.md     — wikipkg data format reference (the contract)
-templates/              — copied verbatim into each generated static-site wiki
-  web/                  — viewer (JS + CSS, no build step)
-  *-prompt.md           — agent prompt templates (now incl. chapter-quiz-prompt)
-shared/                 — TS workspace: zod schemas, consumed by wikipkg CLI + future service/viewer
-tools/wikipkg/          — TS workspace: `wikipkg validate` / `wikipkg pack` CLI
+SKILL.md                — skill spec (7 phases for wikipkg generation)
+README.md               — user-facing project intro
+INSTALL.md              — install / branch-switching instructions
+AGENTS.md               — this file
+
+reference/              — methodology + on-disk contracts (Claude reads at relevant phases)
+  wikipkg-format.md     — authoritative wikipkg data contract
+  trace-tour-design.md  — how to pick the trace target + step list
+  chapter-planning.md   — how to cut any codebase into ~12 chapters
+  8-section-template.md — problem-first tour step structure
+
+templates/              — prompt templates + SVG style guide (Claude substitutes placeholders + dispatches agents)
+  chapter-prompt.md
+  tour-overview-prompt.md
+  tour-step-prompt.md
+  chapter-quiz-prompt.md
+  svg-style-guide.md
+
+shared/                 — TS workspace: zod schemas (Manifest / Quiz / Glossary / common)
+                          consumed by server, viewer, and the wikipkg CLI
+tools/wikipkg/          — TS workspace: `wikipkg validate <dir>` / `wikipkg pack <dir> <out>` CLI
+server/                 — Node + Hono service (auth + upload + content delivery + quiz + progress + addenda + search + HTML shell)
+viewer/                 — vanilla TS bundle: history-API router + 11 components + 9 pages, served by server at /static/
+
 examples/
-  sample-wikipkg/       — minimal fixture (tiny-counter), used by codebase-wiki service tests
+  sample-wikipkg/       — minimal fixture (tiny-counter), used as fixture by server integration tests
+
 docs/
-  specs/                — design docs
-  plans/                — implementation plans
+  specs/                — design docs (problem-first)
+  plans/                — step-by-step implementation plans
   decisions/            — ADR-style decision records
-INSTALL.md              — user-facing install instructions
 ```
 
 ## Conventions
 
 - **Testing**:
-  - **Skill content** (SKILL.md, templates/, reference/): no automated tests. Verification is `node --check`, `grep`, `wc -l`, `python3 -m json.tool`, and manual browser inspection.
-  - **TypeScript workspaces** (`shared/`, `tools/wikipkg/`, future `server/` and `viewer/`): use **vitest** for unit + lightweight integration tests. Run via `npm test --workspace <name>`.
-- **No build step.** All JS in `templates/web/js/` is hand-written
-  vanilla ES modules. Imports are relative paths or CDN URLs.
-- **Default output language: Chinese (Simplified).** User may override
-  per-wiki.
-- **Commit style:** single-line summary, no Conventional Commits prefix,
-  no body unless the change has non-obvious context. See
-  `git log --oneline -20` for examples.
+  - **Skill content** (`SKILL.md`, `templates/`, `reference/`): no automated tests. Verification is `node --check`, `grep`, `wc -l`, `python3 -m json.tool`, and manual review.
+  - **TypeScript workspaces** (`shared/`, `tools/wikipkg/`, `server/`, `viewer/`): use **vitest** for unit + lightweight integration tests. Run via `npm test --workspace <name>`, or `npm test` from root to run all.
+- **Default output language: Chinese (Simplified).** User may override per-wiki via Phase 0 LANGUAGE.
+- **Commit style:** single-line summary, no Conventional Commits prefix, no body unless the change has non-obvious context. See `git log --oneline -20` for examples. No Co-Authored-By trailer.
 - **No emojis in generated wiki content** unless user explicitly asks.
+- **Branching**: main = active development (new flow). `legacy-static-site` = maintenance (old flow). Don't cross-pollinate without explicit reason.
 
 ## Where to look for "why"
 
-- **What does X do?** → `SKILL.md` + the `reference/` doc cited from
-  the relevant section.
-- **Why was X designed this way?** → `docs/specs/` (problem-first
-  design documents).
+- **What does X do?** → `SKILL.md` + the `reference/` doc cited from the relevant section.
+- **Why was X designed this way?** → `docs/specs/` (problem-first design documents).
 - **What was the implementation plan?** → `docs/plans/`.
-- **What load-bearing decisions / contracts shape this codebase?** →
-  `docs/decisions/`. **Read these before changing data formats or
-  cross-version contracts.** The current decisions:
-  - `2026-05-21-addenda-data-contract.md` — Q&A addenda schema is
-    append-only; `.qa-history.jsonl` is tracked in git
-  - `2026-05-21-addenda-as-feedback-signal.md` — addenda are quality
-    feedback for future chapter generation, not just supplementary
-    content
-  - `2026-05-25-codebase-wiki-service-design.md` (spec) — full service+data redesign;
-    introduces `.wikipkg.tar.gz` as a versioned, immutable data artifact distinct from
-    the legacy static-site output. See § "Wiki package 格式" for the data contract
-    (also reflected verbatim in `reference/wikipkg-format.md`).
+- **Load-bearing decisions / contracts**:
+  - `docs/specs/2026-05-25-codebase-wiki-service-design.md` — overall architecture spec for the wikipkg + service redesign. § "Wiki package 格式" is the data contract, also reflected in `reference/wikipkg-format.md`.
+  - `docs/plans/2026-05-25-wiki-service-{A,B,C,D}-*.md` — 4 implementation plans that built the new architecture.
 
 ## Skills that have shaped this repo
 
-The `qa-addenda` work was built using `superpowers:brainstorming` →
-`superpowers:writing-plans` → `superpowers:subagent-driven-development`
-→ `superpowers:finishing-a-development-branch`. New medium-sized
-features should follow the same loop.
+The wikipkg + service redesign was built using `superpowers:brainstorming` → `superpowers:writing-plans` → `superpowers:subagent-driven-development`. New medium-sized features should follow the same loop.

@@ -117,23 +117,12 @@ Structure suggestion (not rigid):
 
 `file:line` references everywhere — every claim should be verifiable.
 
-## Last chapter: glossary + FAQ + appendix
+## Glossary
 
-Required structure (parsed by `templates/web/js/glossary.js`):
+The glossary is **not** a markdown chapter in the new wikipkg flow — it's a structured `glossary.json` at the package root. Schema in `reference/wikipkg-format.md`. Each term has `id` (slug), `term`, optional `aliases[]`, `definition`, optional `see_also[]`. The viewer's GlossaryPanel renders these as a panel with recursive expansion + cross-references.
 
-```markdown
-## Part 1: 术语表
+FAQ and common-commands / env-vars material that previously lived in a "last chapter" can either:
+- Be folded into relevant chapter sections (preferred for tightly-scoped Q&A)
+- Become a supplementary chapter (e.g. `operations.md`) if substantial
 
-### TermName
-- 英文原名: `OfficialEnglishName`
-- 中文译名: 中文名
-- 定义: <1-3 sentences>
-- 代码位置: `path/to/file.py:123`
-
-### NextTerm
-...
-```
-
-Then `## Part 2: FAQ` (10-15 Q&A) and `## Part 3: 调试与开发速查` (env vars, common commands, test commands).
-
-The web viewer auto-detects glossary terms in other chapters and adds clickable underlines → side panel.
+Per-chapter MCQ quizzes (Phase 6 of `SKILL.md`) replace the FAQ format for "test your understanding" purposes.

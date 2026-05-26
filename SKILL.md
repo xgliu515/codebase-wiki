@@ -1,6 +1,6 @@
 ---
 name: codebase-wiki
-description: Generate a problem-first interactive learning wiki for any software codebase. Use when the user wants to deeply learn a codebase, produce educational documentation, or build internal onboarding material. Produces 10-15 reference chapters + a single-request narrative trace tour + SVG figures + interactive web viewer (sidebar, glossary panel, full-text search, GitHub deep-links locked to a specific commit). Default language Chinese; user can override.
+description: Generate a problem-first interactive learning wiki for any software codebase as a `.wikipkg.tar.gz` package, ready to upload to a self-hosted codebase-wiki service for interactive browsing, per-chapter quizzes, progress tracking, and user Q&A. Produces 10-15 reference chapters + a single-request narrative trace tour + SVG figures + glossary + MCQ quizzes. Default language Chinese; user can override.
 ---
 
 # codebase-wiki skill
@@ -9,73 +9,32 @@ You are helping a user **deeply learn a codebase by generating a two-layer educa
 
 - **Layer 1 — Reference manual**: 10-15 chapters covering subsystems comprehensively
 - **Layer 2 — Trace tour**: 15-20 problem-first narrative steps following one minimum-viable real request through the entire stack
-- **Layer 3 — Interactive web viewer**: sidebar, glossary panel, full-text search, GitHub deep-links
+- **Layer 3 — Per-chapter MCQ quizzes**: 3-8 multiple-choice questions per chapter so the reader can self-check understanding
 
-This skill is the result of iteratively building such a wiki for vLLM (see `examples/vllm-wiki.md`). The methodology, agent prompt templates, web shell, and SVG style guide are battle-tested.
+The final artifact is a single `.wikipkg.tar.gz` package, consumed by the **codebase-wiki service** (Node + Hono + SQLite, in `server/` of this repo). After admin uploads, users browse the wiki through a TS viewer served by the service.
 
-> **As of 2026-05-25:** there are two production output modes. The legacy **static-site mode** (default for now) produces a self-contained HTML+JS+MD wiki suitable for GitHub Pages. The new **wikipkg mode** produces a `.wikipkg.tar.gz` for upload to a codebase-wiki service instance. Switch modes by stating intent at the top of the conversation; otherwise the skill defaults to static-site.
+This skill is the result of iteratively building such a wiki for vLLM. The methodology, agent prompt templates, and SVG style guide are battle-tested.
+
+> **Looking for the legacy static-site flow** (self-contained HTML+JS wiki for GitHub Pages, no service required)? It's preserved on the `legacy-static-site` branch:
+> ```bash
+> git -C ~/.claude/skills/codebase-wiki checkout legacy-static-site
+> ```
+> That branch is in maintenance-only mode (bug fixes welcome, no new features).
 
 ---
 
-## Phase 0: Detect mode + gather inputs (do this first)
-
-The skill writes into a **mono-repo** that holds many projects, each with
-many versions: `mono-repo / <project> / <version> / wiki`. See
-`reference/monorepo.md`.
-
-**Probe the output directory** to pick a mode:
-
-| Detected | Mode | Meaning |
-|----------|------|---------|
-| No `projects.json`, directory empty / missing | new mono-repo | Create the repo + its first project |
-| `projects.json` present, target project dir absent | new project | Add a project to an existing mono-repo |
-| `projects.json` present, target project dir present, user prompt does NOT contain "add tour" / "加 tour" | append version | Add a version to an existing project |
-| `projects.json` present, target project dir present, user prompt CONTAINS "add tour" / "加 tour" / "添加 trace tour" | **add-tour** | Append an additional trace tour to the current version (see `reference/trace-tour-design.md` Multi-tour design) |
-
-- **wikipkg mode** — triggered when the user says one of:
-  - "generate a wikipkg for ..."
-  - "produce a wiki package for ..."
-  - "for the codebase-wiki service" (in conjunction with a generate request)
-
-  Flow: Phases 1-6 (exploration + chapter content), then **skip Phase 7** (static-site web setup),
-  then **Phase 8** (quiz generation), then **Phase 9** (manifest + pack).
-
-  Output is a single `.wikipkg.tar.gz` ready for service upload.
+## Phase 0: Gather inputs
 
 Ask the user **one question at a time** (no batches):
 
 1. **Codebase path**: absolute path on disk (used to read source for `file:line` refs)
-2. **Output directory**: the mono-repo path (existing or to-be-created)
-3. **Project name + GitHub repo** (new mono-repo / new project only): e.g., `vllm` + `vllm-project/vllm`
-4. **LANGUAGE** (new mono-repo / new project only): `zh-CN` (default) | `en`. Drives `<html lang>`, `{{TITLE_SUFFIX}}`, which README/glossary template to copy, and the `{{LANGUAGE}}` value passed to chapter/addendum prompts (`zh-CN` → `简体中文`, `en` → `English`). `bilingual` is no longer offered — pick one. The bilingual `strings.js` ships unmodified for both.
-5. **Lock version**: confirm `git rev-parse --short HEAD` of the codebase as the analyzed commit, or let the user specify a tag
-6. **PRIMARY_TOUR_SLUG + PRIMARY_TOUR_TITLE** (new mono-repo / new project only): kebab-case slug + human title for the wiki's primary trace tour. Default slug auto-derived from TRACE_TARGET (e.g. `llm.generate(...)` → `single-request`); default title `"单请求 Trace 导览"` (zh-CN) / `"Single-request trace tour"` (en). Substituted into `templates/web/js/chapters.js` `{{PRIMARY_TOUR_SLUG}}` / `{{PRIMARY_TOUR_TITLE}}` placeholders. See `reference/trace-tour-design.md` Multi-tour design.
+2. **Output directory**: where to write the wikipkg working directory (e.g. `/tmp/<subject>-wikipkg/`). The final `.wikipkg.tar.gz` is produced from this dir in Phase 7.
+3. **Subject identity**: slug (e.g. `vllm`) + name (e.g. `vLLM`) + one-line description + GitHub repo (e.g. `vllm-project/vllm`)
+4. **LANGUAGE**: `zh-CN` (default) | `en`. Drives chapter prompt language (`zh-CN` → `简体中文`, `en` → `English`).
+5. **Lock version**: confirm `git rev-parse --short HEAD` of the codebase as the analyzed commit, or let the user specify a tag. Output `wiki_version.label` = the tag if any, else `<branch>-<shortSHA>`.
+6. **PRIMARY_TOUR_SLUG + PRIMARY_TOUR_TITLE**: kebab-case slug + human title for the wiki's primary trace tour. Default slug auto-derived from TRACE_TARGET (e.g. `llm.generate(...)` → `single-request`); default title `"单请求 Trace 导览"` (zh-CN) / `"Single-request trace tour"` (en).
 
-**add-tour mode (Phase 0 question 6-9 instead)**:
-
-When the detected mode is `add-tour`, skip questions 3-5 and instead ask:
-
-6. **Target project**: pick from the projects in `projects.json`
-7. **Target version**: default `latest` (whichever entry in the project's `versions.json` has `"latest": true`); user can pick a specific version dir
-8. **New tour slug**: kebab-case, unique within this wiki's existing `chapters.js` TOURS (skill reads the file and rejects conflicts). E.g. `batched`, `streaming`, `tool-call`
-9. **New tour title + TRACE_TARGET**: one-line human title (e.g. `"Batched generate trace tour"`) + the minimal request string this tour follows (e.g. `llm.generate(["a","b","c"], max_tokens=3)`)
-
-In **new project / append version** mode, read `projects.json` (and the
-project's `versions.json` when appending) and tell the user which
-projects / versions already exist and what this run will add.
-
-**Derive directory names**:
-- Project dir = `slug(project name)` — lowercase, non-alphanumeric runs → `-`, trim `-`.
-- Version dir = exact tag via `git describe --tags --exact-match HEAD`, else `<branch>-<shortSHA>`.
-
-If a project dir collides but this run means "new project", ask the user
-to rename or to treat it as "append version" — never silently merge. If a
-version dir collides, ask to overwrite or rename.
-
-To **import existing standalone wiki repos** into the mono-repo, see the
-Import section after Phase 7.
-
-Confirm before proceeding. Save inputs to memory if persistent.
+Confirm before proceeding.
 
 ---
 
@@ -96,8 +55,6 @@ Output: a draft 10-15 chapter outline. **Show user, let them edit.** Skip generi
 
 ## Phase 2: Design the trace tour(s)
 
-### Fresh wiki (new mono-repo / new project mode)
-
 Pick **one minimum-viable use case** for the wiki's primary tour, then list ~15-20 steps as a state-evolution table. Examples:
 
 - vllm: `LLM("Qwen2.5-7B").generate(["hello"], max_tokens=3)`
@@ -112,195 +69,81 @@ Criteria for picking:
 
 Confirm with user. Output: a state-evolution table (see `reference/trace-tour-design.md`).
 
-### add-tour mode (incremental)
-
-Phase 0 already collected the new tour's slug / title / TRACE_TARGET. In Phase 2:
-
-1. Read the existing wiki context (`chapters.js` CHAPTERS list + existing TOURS) — do NOT re-explore the codebase
-2. Check slug uniqueness (Phase 0 already did, but re-confirm against the actual file)
-3. Design the new tour's step list (~15-20 steps for full-stack tours; 8-12 for variant / subsystem tours). Use the same state-evolution table format as fresh-wiki tours.
-4. Confirm step list with user before Phase 3
-
-Output: a state-evolution table for this single new tour.
+If the user wants **multiple tours** (e.g. single-request + batched + streaming), pick the primary one first and document the others as follow-ups; tours can be added incrementally by repeating Phases 2-3 with a new tour slug.
 
 ---
 
 ## Phase 3: Generate content
-
-### Fresh wiki
 
 Use **parallel agents** (dispatching-parallel-agents skill). For each agent, give:
 
 - The chapter/step **inputs** (which files, what to cover)
 - The template (`templates/chapter-prompt.md` or `templates/tour-step-prompt.md`)
 - Strict format rules (8-section template for tour; standard markdown for chapters)
-- Output path
-- The `{{LANGUAGE}}` value: `简体中文` for `zh-CN` LANGUAGE, `English` for `en` LANGUAGE — drives whether the agent writes Chinese or English content
-- For tour step agents: `{{TOUR_SLUG}}`, `{{TOUR_TITLE}}`, `{{TOUR_TARGET}}`, `{{TOUR_STEP_COUNT}}`, `{{TOUR_STEP_LIST}}` — controller fills these from Phase 0's PRIMARY_TOUR_SLUG / PRIMARY_TOUR_TITLE and Phase 2's step table
+- Output path inside the wikipkg dir:
+  - Chapters: `chapters/<chapter-slug>.md`
+  - Tour overview: `tours/<tour-slug>/00-overview.md`
+  - Tour steps: `tours/<tour-slug>/<NN>-<step-slug>.md`
+- The `{{LANGUAGE}}` value: `简体中文` for `zh-CN` LANGUAGE, `English` for `en` LANGUAGE
+- For tour step agents: `{{TOUR_SLUG}}`, `{{TOUR_TITLE}}`, `{{TOUR_TARGET}}`, `{{TOUR_STEP_COUNT}}`, `{{TOUR_STEP_LIST}}` — controller fills these from Phase 0 + Phase 2
 
 Recommended dispatch:
 - 5-6 agents for chapters (group adjacent chapters per agent)
 - 5-6 agents for tour steps (group adjacent steps per agent)
-- 1 agent for the tour overview file (`tour-<slug>-00-overview.md`) using `templates/tour-overview-prompt.md` — controller provides `{{STEP_TABLE}}` verbatim from Phase 2 so the overview doesn't drift from generated steps
+- 1 agent for the tour overview file using `templates/tour-overview-prompt.md` — controller provides `{{STEP_TABLE}}` verbatim from Phase 2 so the overview doesn't drift from generated steps
 - All in **one parallel batch** (single message, multiple Agent tool uses)
 
 **Quality bar**: each chapter ~800-1500 lines, each tour step ~120-200 lines, tour overview ~150 lines. `file:line` refs everywhere. Code excerpts 5-30 lines max.
 
-### add-tour mode
-
-Same dispatch pattern but **only for the new tour**:
-
-- N/3 parallel agents writing 3-5 steps each (`templates/tour-step-prompt.md`)
-- 1 agent for the new tour's overview (`templates/tour-overview-prompt.md`)
-- Each tour step agent gets the **existing wiki's `chapters.js`** so they can link back to the right CHAPTERS in section 7 (分支与延伸)
-- Each agent gets `{{TOUR_SLUG}}` = Phase 0's new-tour slug, `{{TOUR_TITLE}}` = new-tour title, `{{TOUR_TARGET}}` = new-tour TRACE_TARGET, `{{LANGUAGE}}` = the existing wiki's LANGUAGE (read from `<html lang>` of the wiki's `index.html`)
-- The overview agent additionally receives `{{OTHER_TOURS}}` = a bullet list of the existing tours in `chapters.js` TOURS (after normalization), e.g. `"single-request: Single-request trace tour — follows llm.generate([\"hi\"], ...)"`
-
-**Do NOT regenerate** any existing chapter or tour step. Reference chapters and the existing tour stay untouched.
-
 ---
 
-## Phase 4: Set up the web viewer
-
-All generated output for this version — `index.html`, every `.md` file,
-and the `web/` directory — goes into `<project>/<version>/` inside the
-mono-repo. Copy `templates/web/` (including `web/js/versions.js`) into
-`<project>/<version>/web/`, and copy `templates/index.html` into
-`<project>/<version>/index.html`. Then customize:
-
-1. **`web/js/chapters.js`** (the only JS file requiring per-project edits — all other
-   `web/js/*.js` import the constants below, so do **not** hardcode the project name anywhere else).
-   **Edit ONLY the constants in the upper section** (PROJECT_NAME / PROJECT_GITHUB_REPO / ANALYZED_* / PROJECT_TAGLINE / PROJECT_FOCUS / TRACE_TARGET / CHAPTERS / TOURS).
-   **Do NOT remove or rewrite the helper functions in the lower half** (`normalizeTours`, `getCurrentVersionDir`, `getCurrentProjectDir`, `STORAGE_PREFIX` IIFE, `REPO_ROOT_KEY`, `getRepoMode`, `getRepoRoot`, `setRepoRoot`) — `utils.js` / `app.js` / `sidebar.js` / `content.js` / `glossary.js` import them and the viewer will fail at module load (`does not provide an export named 'getRepoMode'`) if they're truncated or simplified.
-
-   **TOURS schema** (new wikis): TOURS is an array of tour **groups**, each with `slug` / `title` / `target` / `steps[]`. The primary tour's slug/title come from Phase 0 (`{{PRIMARY_TOUR_SLUG}}` / `{{PRIMARY_TOUR_TITLE}}`). See `reference/trace-tour-design.md` Multi-tour design.
-
-   **add-tour mode**: edit the existing wiki's `chapters.js` in place — **append** a new tour group to the TOURS array. If the existing TOURS is the **old flat shape** (pre-multi-tour wiki), first migrate in place: wrap the existing flat steps into a single group with `slug: 'main'`, `title: '单请求 Trace 导览'` (zh-CN wiki) or `'Single-request trace tour'` (en wiki) — read `<html lang>` from the wiki's `index.html` to decide — `target: <existing TRACE_TARGET>`, `steps: [<existing flat steps verbatim>]`. **Do NOT rename existing step files** — preserve URL compatibility. Then append the new tour group as a second array entry.
-
-   In add-tour mode, the wiki's `sidebar.js` and `content.js` must also be at the new-template version (they use `normalizeTours` and per-group rendering). If the wiki's chrome predates multi-tour (no `normalizeTours` import), copy `templates/web/js/sidebar.js` and `templates/web/js/content.js` over the wiki's versions. Verify with `grep "normalizeTours" <wiki>/web/js/sidebar.js <wiki>/web/js/content.js` — expect 1 match each.
-
-   - `PROJECT_NAME` → friendly name, e.g., `vLLM` (used in page titles, home page, GitHub link labels)
-   - `PROJECT_GITHUB_REPO` → e.g., `vllm-project/vllm`
-   - `ANALYZED_COMMIT` → e.g., `086749736`
-   - `ANALYZED_TAG` → e.g., `v0.21.1rc0+35`
-   - `ANALYZED_DATE` → e.g., `2026-05-17`
-   - `PROJECT_TAGLINE` → one-line home page subtitle
-   - `PROJECT_FOCUS` → focus scope shown on the home page, e.g., `V1 架构`; leave `''` to hide it
-   - `TRACE_TARGET` → the minimum-viable request the trace tour follows, e.g., `llm.generate(["你好"], max_tokens=3)`
-   - `CHAPTERS` array → 10-15 entries matching what you generated
-   - `TOURS` array → 15-20 entries matching tour steps (tour-00-overview + steps)
-   - `STORAGE_PREFIX` is auto-derived from `PROJECT_NAME` — no edit needed
-
-2. **`web/js/architecture.js`**: rewrite the 4-layer SVG to match this project's architecture
-
-3. **`index.html`** placeholders to substitute at scaffold time:
-   - `{{PROJECT_NAME}}` → project friendly name (title + brand)
-   - `{{LANG}}` → `zh-CN` or `en` (matches Phase 0 LANGUAGE)
-   - `{{TITLE_SUFFIX}}` → `中文参考 Wiki` (zh-CN) or `Wiki` (en)
-   See the comment header at the top of `templates/index.html` for the canonical list.
-
-4. **`web/serve.sh`**: generic, no edit needed — only touch it to change the default port if you
-   want multiple wikis running concurrently
-
-5. **The repo-root `index.html` (the project selector, from `templates/project-index.html`)** is the entry point. Test: `cd <output> && python3 -m http.server 8765` then visit `http://localhost:8765/` — project selector → version selector → viewer.
-
-6. **README + glossary chapter template dispatch by LANGUAGE**:
-   - README source: `templates/readme.md.tmpl` if LANGUAGE is `zh-CN`, else `templates/readme.md.en.tmpl`. Copy to `<output>/<project>/<version>/README.md` and substitute placeholders.
-   - Glossary chapter prompt: include `templates/glossary-format.md` (zh-CN) or `templates/glossary-format.en.md` (en) as the format spec sent to the glossary chapter agent.
-   - `templates/web/js/strings.js` is language-agnostic (ships both zh and en) — copy verbatim into `<output>/<project>/<version>/web/js/strings.js`. No edit needed.
-
-7. **Scaffold-time verification — run before claiming Phase 4 complete**:
-   ```bash
-   # (a) No unsubstituted placeholders in user-facing files
-   grep -rE '\{\{[A-Z_]+\}\}' <output>/<project>/<version>/index.html <output>/<project>/<version>/README.md
-   # Expected: zero matches.
-
-   # (b) chapters.js still exports all the helpers the viewer needs (including normalizeTours)
-   node --check <output>/<project>/<version>/web/js/chapters.js
-   grep -cE '^export (function (normalizeTours|getCurrentVersionDir|getCurrentProjectDir|getRepoMode|getRepoRoot|setRepoRoot)|const STORAGE_PREFIX)' <output>/<project>/<version>/web/js/chapters.js
-   # Expected: 7  (6 functions + STORAGE_PREFIX). If less, the agent truncated the lower half — restore from templates/web/js/chapters.js.
-
-   # (c) All web/js files present
-   ls <output>/<project>/<version>/web/js/ | sort
-   # Expected: app.js architecture.js chapters.js content.js diagrams.js glossary.js search.js sidebar.js strings.js utils.js versions.js
-
-   # (d) For fresh-wiki / new-project mode: TOURS is in group shape with one entry (or more after add-tour)
-   node -e "import('<output>/<project>/<version>/web/js/chapters.js').then(m => { const t = m.TOURS; if (!t[0]?.steps) throw new Error('TOURS not in group shape'); console.log('OK', t.length, 'tour(s)'); })"
-   # Expected: prints "OK 1 tour(s)" for fresh, "OK 2 tour(s)" after first add-tour, etc.
-   ```
-   Common misses: `{{PROJECT_NAME}}` in the brand `<a>` tag (line ~22 of index.html), `{{LANG}}` in `<html>` (line ~10), `{{TITLE_SUFFIX}}` in `<title>` (line ~14), truncated `chapters.js` helpers, missing `versions.js` or `strings.js`. Re-substitute / re-copy and re-verify.
-
----
-
-## Phase 5: Add SVG figures (iterative)
+## Phase 4: Add SVG figures (iterative)
 
 ASCII figures are fine in v1. SVG upgrade is a separate pass. When ready:
 
-- Read `templates/svg-style-guide.md` and follow it strictly
-- Convert ASCII figures inside ` ```text ` fences to inline `<svg>` with `<details>` keeping the original ASCII
-- **Common bugs**:
-  - SVG with internal blank lines → marked breaks parsing
-  - SVG with HTML comments `<!--` → marked breaks parsing
-  - `<details>` unclosed → swallows rest of document
-  - Glossary script entering SVG → corrupts `<text>` elements (glossary already skips SVG in `templates/web/js/glossary.js`)
+- Read `templates/svg-style-guide.md` and follow it strictly. The viewer's SVG theming rule is strict: **no inline `<style>` tags, no `<script>` tags**. Stroke/fill should use `currentColor` or `data-role="..."` attributes so viewer CSS variables can theme them.
+- Place SVGs under `figures/<figure-slug>.svg` in the wikipkg dir
+- Reference them from chapter markdown via standard `![alt](figures/<slug>.svg)` — the viewer resolves the relative path to an API URL at render time
 
-Each SVG: hand-write or dispatch agent with style guide attached.
+Each figure becomes one entry in `manifest.json` `figures[]` (auto-generated in Phase 7).
 
----
-
-## Phase 6: Glossary chapter
-
-Write the last reference chapter as a structured glossary:
-- 30-50 terms, alphabetical, each with: English name, Chinese name, definition, code location (`file:line`)
-- The glossary parser in `templates/web/js/glossary.js` expects this exact structure (see `reference/glossary-format.md`)
-
-Plus a FAQ section (10-15 common questions) and an environment-variables / common-commands appendix.
+**Common SVG bugs**:
+- SVG with internal blank lines → marked breaks parsing
+- SVG with HTML comments `<!--` → marked breaks parsing
+- Glossary script entering SVG → corrupts `<text>` elements
 
 ---
 
-## Phase 7: Publish (mono-repo)
+## Phase 5: Glossary
 
-The repo root holds the project selector + `projects.json`; each project
-holds a version selector + `versions.json`; each version holds a wiki. See
-`reference/monorepo.md`.
+Write a structured glossary as `glossary.json` (schema in `reference/wikipkg-format.md`):
 
-### New mono-repo mode
+- 30-50 terms
+- Each term: `id` (slug), `term`, optional `aliases[]`, `definition`, optional `see_also[]` (other term ids)
+- The viewer's GlossaryPanel renders this with recursive expansion + linked references
 
-- Build `<project>/<version>/` — the full wiki from Phases 3-6.
-- `<project>/index.html`: copy `templates/version-index.html`, replace `{{PROJECT_NAME}}`.
-- `<project>/versions.json`: copy `templates/versions.json`, fill the single entry (`latest: true`).
-- Repo-root `index.html`: copy `templates/project-index.html`, replace `{{MONOREPO_TITLE}}`.
-- Repo-root `selector.css`: copy `templates/selector.css` (no edits).
-- Repo-root `projects.json`: copy `templates/projects.json`, fill the single entry.
-- `README.md` from `templates/readme.md.tmpl`; `LICENSE` from `templates/license.tmpl`; `.gitignore` from `templates/gitignore.tmpl`.
-- `git init -b main && git add -A && git commit -m "initial release"`
-- Push to the user's GitHub repo (confirm before pushing).
-- **Enable GitHub Pages**: `gh api -X POST /repos/<owner>/<repo>/pages -f "source[branch]=main" -f "source[path]=/"`
-- Live URL: `https://<owner>.github.io/<repo>/`
+```json
+{
+  "schema_version": "1.0",
+  "terms": [
+    {
+      "id": "kv-cache",
+      "term": "KV cache",
+      "aliases": ["key-value cache"],
+      "definition": "Storage of attention keys/values across decoding steps...",
+      "see_also": ["paged-attention", "block-manager"]
+    }
+  ]
+}
+```
 
-### New project mode
-
-- Build `<project>/<version>/`.
-- `<project>/index.html` (version selector) + `<project>/versions.json` (single entry, `latest: true`).
-- Push a new entry to the **head** of the repo-root `projects.json` `projects` array.
-- Repo-root `index.html` / `selector.css` are NOT touched.
-- `git add -A && git commit -m "add wiki for <project>"` and push (confirm first).
-
-### Append version mode
-
-- Add `<project>/v<x>/`.
-- Update `<project>/versions.json`: push the new entry to the **head**, set its `latest` to `true`, flip every other entry's `latest` to `false`.
-- Update that project's entry in repo-root `projects.json` (`versions`, `latest`, `updated`) and move it to the head of the array.
-- Repo-root `index.html` / `selector.css` and other projects are NOT touched.
-- `git add -A && git commit -m "add <version> for <project>"` and push (confirm first).
-
-See `reference/monorepo.md` for the naming rule and error handling.
+FAQ / common commands / env-vars can go inside the glossary `definition` for relevant terms, or be added as supplementary chapters if substantial.
 
 ---
 
-## Phase 8 — Generate chapter quizzes (wikipkg mode only)
+## Phase 6: Generate per-chapter MCQ quizzes
 
-For each chapter in `CHAPTERS`:
+For each chapter:
 
 1. Read the chapter markdown content
 2. Dispatch a subagent with `templates/chapter-quiz-prompt.md`, substituting:
@@ -312,9 +155,11 @@ For each chapter in `CHAPTERS`:
 5. If validation fails on any quiz JSON, re-dispatch that chapter's prompt with the validation error in the input
 6. Loop until all quizzes validate
 
-**Skip Phase 8** if the user invoked the legacy static-site mode (no service target).
+Quiz schema (per chapter): 3-8 MCQ questions, mix of `mcq-single` / `mcq-multi`, each with stem + options + `answer` array + `explanation`. See `reference/wikipkg-format.md` for the full contract.
 
-## Phase 9 — Build manifest + pack wikipkg
+---
+
+## Phase 7: Build manifest + pack wikipkg
 
 0. **One-time build of CLI** (if `tools/wikipkg/dist/cli.js` does not exist yet):
    ```bash
@@ -322,101 +167,37 @@ For each chapter in `CHAPTERS`:
    ```
    Skip this step on subsequent invocations once `dist/cli.js` is present.
 
-1. Construct `manifest.json` in the wikipkg directory with all chapters / tours / figures / glossary path / source metadata. Use the schema in `reference/wikipkg-format.md`
-2. Run `node tools/wikipkg/dist/cli.js validate <wikipkg-dir>` — fix any errors
+1. Construct `manifest.json` in the wikipkg directory. Required structure (see `reference/wikipkg-format.md` for the authoritative schema):
+
+   ```json
+   {
+     "schema_version": "1.0",
+     "content_type": "codebase",
+     "subject": { "slug": "...", "name": "...", "language": "zh-CN" },
+     "wiki_version": {
+       "label": "<tag-or-branch-shortsha>",
+       "generated_at": "<ISO8601>",
+       "generator": { "name": "codebase-wiki", "version": "2.0.0" }
+     },
+     "source": {
+       "type": "codebase",
+       "codebase": {
+         "repo_url": "https://github.com/<owner>/<repo>",
+         "target_ref": "<tag-or-branch>",
+         "target_commit": "<short-or-full SHA>",
+         "deep_link_template": "https://github.com/<owner>/<repo>/blob/{commit}/{path}#L{line}"
+       }
+     },
+     "chapters": [ /* one entry per chapter md */ ],
+     "tours": [ /* one entry per tour, with steps[] */ ],
+     "glossary_path": "glossary.json",
+     "figures": [ /* one entry per SVG */ ]
+   }
+   ```
+
+2. Run `node tools/wikipkg/dist/cli.js validate <wikipkg-dir>` — fix any errors before packing
 3. Run `node tools/wikipkg/dist/cli.js pack <wikipkg-dir> <subject-slug>-<version-label>.wikipkg.tar.gz`
-4. Hand the resulting `.wikipkg.tar.gz` to the user with upload instructions for the codebase-wiki service
-
-**Skip Phase 9** if the user invoked the legacy static-site mode.
-
----
-
-## Importing existing standalone wiki repos
-
-To bring already-generated standalone wiki repos into the mono-repo, run
-the import flow. It is a separate entry point and can batch multiple
-source repos. Before moving or copying many files, tell the user and get
-confirmation.
-
-For each source wiki repo:
-
-1. **Detect the source layout** — `versions.json` at the source root →
-   already versioned; only root-level `index.html` + `web/js/chapters.js` → flat.
-2. **Read the project identity** from the source's `web/js/chapters.js`
-   (`PROJECT_NAME`, `PROJECT_GITHUB_REPO`); for a versioned source use the
-   latest version's `chapters.js`. Project dir = `slug(PROJECT_NAME)`.
-3. **Flat source** — run the flat→versioned conversion (version dir from
-   `ANALYZED_TAG`, else `ANALYZED_COMMIT`; see `reference/versioning.md`),
-   landing the output at `<mono>/<project>/v<x>/`, and create
-   `<mono>/<project>/index.html` + `<mono>/<project>/versions.json`.
-4. **Versioned source** — copy the source contents (except `README.md` /
-   `LICENSE` / `.gitignore` / `.git/`) into `<mono>/<project>/`. Delete the
-   leftover `<project>/selector.css` — the version selector uses `../selector.css`.
-5. **Inject the project dropdown** into every version of the imported
-   project: ship the current `web/js/versions.js` (with `initProjectSwitcher`),
-   add `<select id="project-switcher">` to each `index.html` topbar, and add
-   the import + `initProjectSwitcher()` call to each `app.js`. Nav chrome
-   only — never chapter `.md` content.
-6. **Register the project** in repo-root `projects.json`; ensure repo-root
-   `index.html` (project selector) + `selector.css` exist.
-7. The source repo is **not deleted** — import copies.
-
-See `reference/monorepo.md` for full details and error handling.
-
----
-
-## Q&A addenda flow
-
-To add focused deep-dives to an already-generated wiki (mono-repo only),
-run the **Q&A addenda flow** — a separate entry mode peer to
-new-monorepo / new-project / append-version (with import as its own
-peer entry point). Between user input and the final `git push` decision
-the flow is fully autonomous.
-
-For each Q&A run:
-
-1. **Phase 0 — locate target + source**: in a single message, ask for
-   the target wiki path `<mono>/<project>/<version>/`, the source-code
-   repo path, and a batch of questions (paste or `questions.md`). Read
-   the target's `web/js/chapters.js` to extract `PROJECT_GITHUB_REPO`,
-   `ANALYZED_COMMIT`, and `CHAPTERS` (the latter feeds Phase 1
-   classification). Verify the commit is reachable via
-   `git -C <src> rev-parse <ANALYZED_COMMIT>` — **do not** auto-fetch.
-   Read source files via `git -C <src> show <ANALYZED_COMMIT>:<path>`
-   (no `cd`, no `checkout`).
-
-2. **Phase 1 — auto-classify**: one LLM call maps each question to a
-   parent chapter (`CHAPTERS` entries whose `id` does not match
-   `/glossary/i`). Unmatched questions fall back to the chapter with
-   the lowest `num` value, with a prepended note in the addendum.
-   Print the assignment table; do **not** confirm with the user.
-
-3. **Phase 2 — dispatch agents**: one agent per question, 5-6 in
-   parallel via the dispatching-parallel-agents skill, prompted from
-   `templates/addendum-prompt.md`. Output path
-   `<target>/<NN><letter>-<slug>.md`. Same quality bar as
-   `templates/chapter-prompt.md` — verifiable `file:line` refs, 200-500
-   lines, no H1, no `## 延伸阅读` footer.
-
-4. **Phase 3 — wire up**: append `- [...](./...)` to parent chapter's
-   `## 延伸阅读 / Addenda` section (idempotent by link target); push
-   `{id, title, question}` into the parent chapter's `addenda` array in
-   `web/js/chapters.js` (idempotent by id). No viewer code changes —
-   the templates already support `addenda`.
-
-5. **Phase 4 — commit + push**: from the mono-repo root,
-   `git add -A && git commit -m "Add N addenda for <project>/<version>"`.
-   Ask the user before `git push` — the only blocking confirmation.
-
-The web viewer code in `templates/web/` already supports the `addenda`
-field: `sidebar.js` renders nested toggles, `content.js` renders an
-addendum banner at the top of each addendum page, and `chapters.js`
-flattens addenda into `ALL_DOCS` so routing / search / `j-k` navigation
-pick them up. Existing wikis with no `addenda` field degrade to the
-original flat sidebar — no migration needed.
-
-See `reference/qa-addenda-flow.md` for the full flow, file-naming rule,
-idempotency contract, and error handling matrix.
+4. Hand the resulting `.wikipkg.tar.gz` to the user. The user uploads it via the codebase-wiki service's admin UI (`/admin/upload`) or `POST /api/v1/admin/wikis`.
 
 ---
 
@@ -424,29 +205,36 @@ idempotency contract, and error handling matrix.
 
 - **Problem-first, no bare conclusions**: Always explain by problem → naive attempt → why fails → actual design. Never start with "X works like this:".
 - **Lock to a commit**: All `file:line` refs reference a specific commit. Bumping the commit means re-verifying chapters.
+- **Identifier stability**: `chapters[].id`, `tours[].id`, `figures[].id`, `glossary.terms[].id`, and quiz `questions[].id` are **stable across regenerations of the same subject** when content is unchanged. Service-side user state (progress, attempts, addenda) is keyed by these ids. Renaming an id breaks user history for that resource — treat it as a content deletion + creation.
 - **Autonomous v1, then iterate**: For personal-use wikis, don't pause to confirm minor decisions. Ship a working v1, then user iterates.
 - **Use the dispatching-parallel-agents skill** when you have 5+ independent file generations.
 - **No emojis in output content** unless the user explicitly asks.
 
 ## Pitfalls (from real experience)
 
-1. **SVG inside markdown breaks** on blank lines OR HTML comments. Strip both before commit.
+1. **SVG inside markdown breaks** on blank lines OR HTML comments. Strip both before packing.
 2. **Permission prompts pile up** when dispatching 6+ agents in parallel; user may accidentally deny some. Confirm completion by checking file state, not by trusting agent return messages.
-3. **GitHub Pages URL with hash-routing**: works fine, but `vscode://` links won't work for visitors. Default to GitHub deep-links; offer local-VSCode as opt-in toggle.
-4. **viewBox sizing**: pure `max-width: 100%` makes SVGs stretch huge on wide screens. Cap `max-width` at design width (~760-880px).
-5. **LaTeX math**: marked doesn't render `$..$` by default. Add `marked-katex-extension` if the project has formulas.
+3. **viewBox sizing**: pure `max-width: 100%` makes SVGs stretch huge on wide screens. Cap `max-width` at design width (~760-880px).
+4. **LaTeX math**: marked doesn't render `$..$` by default. The viewer can add `marked-katex-extension` if a wiki has formulas — note it in `meta/README.md` so future viewer features cover it.
+5. **Manifest path mismatch**: `manifest.json` paths must match actual file locations. The validator catches this, but always run validate before pack.
 
 ## Reference files
 
+- `reference/wikipkg-format.md` — authoritative on-disk data contract (the package)
 - `reference/8-section-template.md` — the problem-first tour step structure
 - `reference/trace-tour-design.md` — how to pick a trace target + step list
 - `reference/chapter-planning.md` — how to cut any codebase into ~12 chapters
-- `reference/workflow.md` — complete step-by-step
-- `reference/monorepo.md` — three-level mono-repo layout, run modes, import flow
-- `reference/versioning.md` — the version layer: naming rule, versions.json, version selector
-- `reference/qa-addenda-flow.md` — Q&A addenda flow: phases, file naming, idempotency, errors
 - `templates/svg-style-guide.md` — colors, conventions, naming for figures
 - `templates/chapter-prompt.md` — agent prompt for reference chapter generation
+- `templates/tour-overview-prompt.md` — agent prompt for tour overview
 - `templates/tour-step-prompt.md` — agent prompt for tour step generation
-- `templates/addendum-prompt.md` — agent prompt for single-addendum generation
-- `examples/vllm-wiki.md` — pointer to the reference implementation at github.com/xgliu515/vllm-wiki
+- `templates/chapter-quiz-prompt.md` — agent prompt for per-chapter MCQ quiz generation
+
+## See also (in this repo, for the service side)
+
+- `server/` — codebase-wiki service (Node + Hono + SQLite). Self-hosted; consumes the wikipkg you generate.
+- `viewer/` — TS viewer (single bundle, served by `server/` at `/static/`)
+- `shared/` — zod schemas shared between server, viewer, and wikipkg CLI
+- `tools/wikipkg/` — the validate + pack CLI invoked in Phase 7
+- `examples/sample-wikipkg/` — a minimal reference fixture (`tiny-counter`)
+- `docs/specs/2026-05-25-codebase-wiki-service-design.md` — overall architecture spec for the service+data redesign

@@ -82,4 +82,4 @@ In section 7, link with `path#anchor` syntax:
 - 投机解码场景下这一步会变 → [第 11 章 §1](11-advanced-features.md#1-speculative-decoding)
 ```
 
-The web viewer's markdown renderer creates `id` attributes from headings via slugify — see `templates/web/js/content.js` heading renderer.
+The viewer's markdown renderer creates `id` attributes from headings via slugify — see `viewer/src/util/anchors.ts` (`slugifyHeading`) and `viewer/src/components/MarkdownRenderer.ts` heading renderer.
