@@ -55,6 +55,9 @@ describe('migrations', () => {
       expect(names).toContain('subjects');
       expect(names).toContain('wiki_versions');
       expect(names).toContain('schema_migrations');
+      expect(names).toContain('attempts');
+      expect(names).toContain('progress');
+      expect(names).toContain('addenda');
     } finally {
       db.close();
       await rm(dir, { recursive: true, force: true });
