@@ -113,4 +113,56 @@ describe('public read endpoints', () => {
     expect(res.status).toBe(401);
     dbPrivate.close();
   });
+
+  it('GET /chapters/:id returns markdown', async () => {
+    const res = await app.request('/api/v1/wikis/tiny-counter/v0.1.0/chapters/intro');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.title).toBe('Introduction');
+    expect(body.markdown).toContain('Tiny Counter');
+  });
+
+  it('GET /chapters/:unknown returns 404', async () => {
+    const res = await app.request('/api/v1/wikis/tiny-counter/v0.1.0/chapters/no-such');
+    expect(res.status).toBe(404);
+  });
+
+  it('GET /tours/:id returns tour overview', async () => {
+    const res = await app.request('/api/v1/wikis/tiny-counter/v0.1.0/tours/main');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.steps).toHaveLength(2);
+  });
+
+  it('GET /tours/:id/steps/:order returns step markdown', async () => {
+    const res = await app.request('/api/v1/wikis/tiny-counter/v0.1.0/tours/main/steps/1');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.title).toBe('HTTP entry');
+    expect(body.markdown).toContain('Express');
+  });
+
+  it('GET /glossary returns terms', async () => {
+    const res = await app.request('/api/v1/wikis/tiny-counter/v0.1.0/glossary');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.terms).toHaveLength(2);
+  });
+
+  it('GET /figures/:id returns SVG bytes with right content-type', async () => {
+    const res = await app.request('/api/v1/wikis/tiny-counter/v0.1.0/figures/architecture');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('image/svg+xml');
+    const txt = await res.text();
+    expect(txt).toContain('<svg');
+  });
+
+  it('GET /quizzes/:chapter returns REDACTED (no answer)', async () => {
+    const res = await app.request('/api/v1/wikis/tiny-counter/v0.1.0/quizzes/architecture');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.questions[0]).not.toHaveProperty('answer');
+    expect(body.questions[0]).not.toHaveProperty('explanation');
+    expect(body.questions[0].stem).toBeTypeOf('string');
+  });
 });
