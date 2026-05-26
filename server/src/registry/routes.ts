@@ -94,5 +94,49 @@ export function createAdminRegistryRoutes(db: DB, env: RegistryEnv) {
     }, 201);
   });
 
+  r.delete('/wikis/:subject/:version', (c) => {
+    const sid = getCookie(c, 'cwsess');
+    const u = requireAdmin(sid);
+    if (!u) return c.json({ error: 'forbidden', message: 'admin only' }, 403);
+
+    const subject = c.req.param('subject');
+    const version = c.req.param('version');
+    const row = db
+      .prepare(`SELECT deleted_at FROM wiki_versions WHERE subject_slug=? AND version_label=?`)
+      .get(subject, version) as { deleted_at: number | null } | undefined;
+    if (!row) return c.json({ error: 'not_found', message: 'version not found' }, 404);
+    if (row.deleted_at !== null) return c.json({ ok: true, already_deleted: true });
+
+    db.prepare(
+      `UPDATE wiki_versions SET deleted_at=? WHERE subject_slug=? AND version_label=?`,
+    ).run(Date.now(), subject, version);
+    return c.json({ ok: true });
+  });
+
+  r.post('/wikis/:subject/:version/latest', (c) => {
+    const sid = getCookie(c, 'cwsess');
+    const u = requireAdmin(sid);
+    if (!u) return c.json({ error: 'forbidden', message: 'admin only' }, 403);
+
+    const subject = c.req.param('subject');
+    const version = c.req.param('version');
+    const row = db
+      .prepare(
+        `SELECT deleted_at FROM wiki_versions WHERE subject_slug=? AND version_label=?`,
+      )
+      .get(subject, version) as { deleted_at: number | null } | undefined;
+    if (!row) return c.json({ error: 'not_found', message: 'version not found' }, 404);
+    if (row.deleted_at !== null) {
+      return c.json({ error: 'not_found', message: 'version is deleted' }, 404);
+    }
+
+    db.prepare(`UPDATE subjects SET latest_version=?, updated_at=? WHERE slug=?`).run(
+      version,
+      Date.now(),
+      subject,
+    );
+    return c.json({ ok: true, subject, latest_version: version });
+  });
+
   return r;
 }
