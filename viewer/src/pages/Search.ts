@@ -3,6 +3,25 @@ import { api } from '../api/client.js';
 import { renderSidebar } from '../components/Sidebar.js';
 import { navigate } from '../router.js';
 
+function renderSnippet(snippet: string): Node[] {
+  // Allow only <mark>...</mark> tags. Everything else is text.
+  const out: Node[] = [];
+  const parts = snippet.split(/(<mark>|<\/mark>)/);
+  let inMark = false;
+  for (const p of parts) {
+    if (p === '<mark>') { inMark = true; continue; }
+    if (p === '</mark>') { inMark = false; continue; }
+    if (inMark) {
+      const m = document.createElement('mark');
+      m.textContent = p;
+      out.push(m);
+    } else {
+      out.push(document.createTextNode(p));
+    }
+  }
+  return out;
+}
+
 export async function renderSearch(subject: string, version: string, q: string): Promise<HTMLElement> {
   const manifest = await api.getManifest(subject, version);
   const sidebar = await renderSidebar({ manifest, subject, version });
@@ -31,7 +50,7 @@ export async function renderSearch(subject: string, version: string, q: string):
               h('span', { class: 'doc-type' }, r.doc_type),
               ' ',
               h('span', { class: 'doc-id' }, r.doc_id),
-              h('p', { class: 'snippet', html: r.snippet }),
+              h('p', { class: 'snippet' }, ...renderSnippet(r.snippet)),
             ),
           ),
         ),

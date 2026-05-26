@@ -41,6 +41,7 @@ export async function renderAddendaList(opts: AddendaListOpts): Promise<HTMLElem
       rows: '3',
     });
     const submit = h('button', {
+      type: 'button',
       onclick: async () => {
         const text = textarea.value.trim();
         if (!text) return;

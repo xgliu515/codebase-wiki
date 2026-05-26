@@ -7,6 +7,7 @@ export type Route =
   | { kind: 'tour'; subject: string; version: string; tourId: string }
   | { kind: 'tour_step'; subject: string; version: string; tourId: string; step: number }
   | { kind: 'search'; subject: string; version: string; q: string }
+  | { kind: 'glossary'; subject: string; version: string }
   | { kind: 'admin' }
   | { kind: 'admin_upload' }
   | { kind: 'me' }
@@ -35,6 +36,9 @@ export function parseRoute(pathname: string, search = ''): Route {
     if (parts[3] === 'search') {
       const qp = new URLSearchParams(search);
       return { kind: 'search', subject, version, q: qp.get('q') ?? '' };
+    }
+    if (parts[3] === 'glossary' && parts.length === 4) {
+      return { kind: 'glossary', subject, version };
     }
   }
   return { kind: 'notfound', pathname };

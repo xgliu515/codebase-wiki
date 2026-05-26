@@ -5,6 +5,14 @@ import { getSessionUser } from '../auth/session.js';
 import { ManifestSchema } from '@codebase-wiki/shared';
 import { RateLimiter } from '../util/rate-limit.js';
 
+function escapeForFts(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 export function createAddendaRoutes(
   db: DB,
   env: { PUBLIC_READ: string; MAX_ADDENDA_PER_HOUR_PER_USER?: string },
@@ -102,7 +110,7 @@ export function createAddendaRoutes(
     const now = Date.now();
     const txn = db.transaction(() => {
       const ins = insertAddendum.get(subject, version, chapterId, u.user_id, q, a, now) as { id: number };
-      insertFts.run(subject, version, `addendum/${ins.id}`, q, a ?? '');
+      insertFts.run(subject, version, `addendum/${ins.id}`, escapeForFts(q), escapeForFts(a ?? ''));
       return ins.id;
     });
     const newId = txn();

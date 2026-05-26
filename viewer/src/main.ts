@@ -8,6 +8,7 @@ import { renderTourOverview, renderTourStep } from './pages/TourStep.js';
 import { renderSearch } from './pages/Search.js';
 import { renderMe } from './pages/Me.js';
 import { renderAdminUpload } from './pages/AdminUpload.js';
+import { renderGlossary } from './pages/Glossary.js';
 
 const root = document.querySelector<HTMLElement>('#app');
 if (!root) throw new Error('#app element missing');
@@ -22,6 +23,7 @@ async function renderForRoute(route: Route): Promise<HTMLElement> {
     case 'tour':       return await renderTourOverview(route.subject, route.version, route.tourId);
     case 'tour_step':  return await renderTourStep(route.subject, route.version, route.tourId, route.step);
     case 'search':     return await renderSearch(route.subject, route.version, route.q);
+    case 'glossary':   return await renderGlossary(route.subject, route.version);
     case 'me':         return await renderMe();
     case 'admin':      return await renderAdminUpload();
     case 'admin_upload': return await renderAdminUpload();
@@ -29,17 +31,23 @@ async function renderForRoute(route: Route): Promise<HTMLElement> {
   }
 }
 
+let currentPaintId = 0;
+
 async function paint(route: Route) {
+  const paintId = ++currentPaintId;
   clear(root!);
   root!.appendChild(renderTopbar());
   const loading = h('main', { class: 'loading' }, 'Loading…');
   root!.appendChild(loading);
   try {
     const page = await renderForRoute(route);
-    root!.removeChild(loading);
+    // If a newer paint started while we awaited, bail out
+    if (paintId !== currentPaintId) return;
+    if (loading.parentNode === root) root!.removeChild(loading);
     root!.appendChild(page);
   } catch (e: any) {
-    root!.removeChild(loading);
+    if (paintId !== currentPaintId) return;
+    if (loading.parentNode === root) root!.removeChild(loading);
     root!.appendChild(h('main', { class: 'error' }, h('h1', null, 'Error'), h('p', null, e.message)));
   }
 }
@@ -55,6 +63,7 @@ document.addEventListener('click', (e) => {
   const href = a.getAttribute('href');
   if (!href || href.startsWith('http') || href.startsWith('//') || href.startsWith('#')) return;
   if (href.startsWith('/api/')) return;  // let server handle auth redirects etc
+  if (!href.startsWith('/')) return;  // mailto:, tel:, blob:, etc.
   if ((e as MouseEvent).metaKey || (e as MouseEvent).ctrlKey || (e as MouseEvent).shiftKey) return;
   e.preventDefault();
   navigate(href);
