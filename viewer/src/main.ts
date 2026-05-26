@@ -3,6 +3,7 @@ import { mount, h, clear } from './dom.js';
 import { renderTopbar } from './components/Topbar.js';
 import { renderHome } from './pages/Home.js';
 import { renderSubject } from './pages/Subject.js';
+import { renderVersion } from './pages/Version.js';
 import { renderChapter, renderQuizPage } from './pages/Chapter.js';
 import { renderTourOverview, renderTourStep } from './pages/TourStep.js';
 import { renderSearch } from './pages/Search.js';
@@ -17,7 +18,7 @@ async function renderForRoute(route: Route): Promise<HTMLElement> {
   switch (route.kind) {
     case 'home':       return await renderHome();
     case 'subject':    return await renderSubject(route.subject);
-    case 'version':    return await renderSubject(route.subject);  // alias for now
+    case 'version':    return await renderVersion(route.subject, route.version);
     case 'chapter':    return await renderChapter(route.subject, route.version, route.chapterId);
     case 'quiz':       return await renderQuizPage(route.subject, route.version, route.chapterId);
     case 'tour':       return await renderTourOverview(route.subject, route.version, route.tourId);

@@ -105,3 +105,21 @@ article h1 { margin-top: 0; }
 .upload-form input, .upload-form button { margin: 8px 0; display: block; }
 .upload-status .error { color: var(--color-error); }
 .upload-status .success { color: var(--color-correct); }
+
+.version-overview .subtitle { color: var(--color-muted); }
+.version-overview .description { font-size: 1.05em; margin: 16px 0; }
+.version-overview .source-link { font-size: 0.9em; }
+.version-overview h2 { margin-top: 32px; }
+.chapter-grid { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.chapter-card a {
+  display: flex; gap: 12px; align-items: baseline;
+  padding: 12px 16px; border: 1px solid var(--color-border); border-radius: 6px;
+  color: var(--color-fg); text-decoration: none;
+}
+.chapter-card a:hover { background: rgba(127,127,127,.08); border-color: var(--color-link); }
+.chapter-order { font-family: var(--font-mono); color: var(--color-muted); font-size: 0.9em; }
+.chapter-title { flex: 1; font-weight: 500; }
+.chapter-mins { color: var(--color-muted); font-size: 0.85em; }
+.tour-list { list-style: none; padding: 0; }
+.tour-list li { padding: 4px 0; }
+.tour-step-count { color: var(--color-muted); font-size: 0.9em; }
