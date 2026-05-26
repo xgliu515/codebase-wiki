@@ -96,7 +96,6 @@ describe('POST /api/v1/admin/wikis (upload staging)', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.ok).toBe(true);
-    expect(body.staged_files).toBeGreaterThan(0);
   });
 
   it('rejects oversized tarball', async () => {
@@ -131,15 +130,16 @@ describe('POST /api/v1/admin/wikis (upload staging)', () => {
     execSync(`tar -czf ${tarPath} -C ${farm} .`, { stdio: 'pipe' });
     const { readFile } = await import('node:fs/promises');
     const bytes = await readFile(tarPath);
-    // Send via upload — should succeed because 50 < MAX_FILES_PER_TARBALL (10000)
+    // Send via upload — 50 < MAX_FILES_PER_TARBALL (10000) so staging succeeds,
+    // but the content has no manifest.json so validation rejects it with 400.
     const res = await app.request('/api/v1/admin/wikis', {
       method: 'POST',
       headers: { 'content-type': 'application/gzip', cookie: `cwsess=${adminSid}` },
       body: bytes,
     });
-    // We can't easily craft a true path-traversal tarball in this test environment,
-    // but we can at least confirm the upload succeeds when limits are not breached.
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe('manifest_missing');
   });
 
   it('cleans up staging dir on rejected upload', async () => {
@@ -161,5 +161,31 @@ describe('POST /api/v1/admin/wikis (upload staging)', () => {
     } catch {
       // ENOENT means never created — also fine
     }
+  });
+
+  it('returns manifest summary for valid wikipkg', async () => {
+    const res = await app.request('/api/v1/admin/wikis', {
+      method: 'POST',
+      headers: { 'content-type': 'application/gzip', cookie: `cwsess=${adminSid}` },
+      body: sampleTarball,
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.manifest_summary.subject).toBe('tiny-counter');
+    expect(body.manifest_summary.version).toBe('v0.1.0');
+    expect(body.manifest_summary.chapters).toBe(3);
+  });
+
+  it('rejects malformed tarball', async () => {
+    const garbage = Buffer.from('this is not a tarball');
+    const res = await app.request('/api/v1/admin/wikis', {
+      method: 'POST',
+      headers: { 'content-type': 'application/gzip', cookie: `cwsess=${adminSid}` },
+      body: garbage,
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe('invalid_archive');
   });
 });

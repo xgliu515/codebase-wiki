@@ -4,6 +4,7 @@ import type { DB } from '../db/connection.js';
 import { getSessionUser } from '../auth/session.js';
 import { stageTarball } from './upload.js';
 import { defaultLimits } from './safety.js';
+import { validateStagedContent } from './validate.js';
 import { rm } from 'node:fs/promises';
 
 export type RegistryEnv = {
@@ -53,12 +54,30 @@ export function createAdminRegistryRoutes(db: DB, env: RegistryEnv) {
       return c.json({ error: result.code, message: result.error }, status);
     }
 
-    // Task 7-8 will continue from here (validate + install). For now: clean staging and return.
+    const validation = await validateStagedContent(result.contentDir);
+    if (!validation.ok) {
+      await rm(result.stageDir, { recursive: true, force: true });
+      const errorCodes = new Set(validation.errors.map((e) => e.code));
+      const status = errorCodes.has('schema_unsupported') || errorCodes.has('content_type_unsupported')
+        ? 400
+        : 400;
+      return c.json({
+        error: validation.errors[0]!.code,
+        message: validation.errors[0]!.message,
+        all_errors: validation.errors,
+      }, status);
+    }
+
+    // Task 8 will continue from here: atomic install + DB write
     await rm(result.stageDir, { recursive: true, force: true });
     return c.json({
       ok: true,
-      staged_files: result.fileCount,
-      note: 'staged successfully; validation + install in next tasks',
+      manifest_summary: {
+        subject: validation.manifest.subject.slug,
+        version: validation.manifest.wiki_version.label,
+        chapters: validation.manifest.chapters.length,
+      },
+      note: 'validation passed; install in Task 8',
     });
   });
 
