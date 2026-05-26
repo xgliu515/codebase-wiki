@@ -40,10 +40,35 @@ export async function renderChapter(
     );
   }
 
+  // Prev / next chapter by manifest order
+  const sortedChapters = manifest.chapters.slice().sort((a, b) => a.order - b.order);
+  const idx = sortedChapters.findIndex((x) => x.id === chapterId);
+  const prev = idx > 0 ? sortedChapters[idx - 1] : undefined;
+  const next = idx >= 0 && idx < sortedChapters.length - 1 ? sortedChapters[idx + 1] : undefined;
+  const chapterNav = (prev || next) ? h('nav', { class: 'chapter-nav' },
+    prev ? h('a', {
+      class: 'chapter-nav-prev',
+      href: `/wiki/${subject}/${version}/chapter/${prev.id}`,
+      onclick: (e: MouseEvent) => { e.preventDefault(); navigate(`/wiki/${subject}/${version}/chapter/${prev.id}`); },
+    },
+      h('span', { class: 'chapter-nav-label' }, '← Previous'),
+      h('span', { class: 'chapter-nav-title' }, prev.title),
+    ) : h('span'),
+    next ? h('a', {
+      class: 'chapter-nav-next',
+      href: `/wiki/${subject}/${version}/chapter/${next.id}`,
+      onclick: (e: MouseEvent) => { e.preventDefault(); navigate(`/wiki/${subject}/${version}/chapter/${next.id}`); },
+    },
+      h('span', { class: 'chapter-nav-label' }, 'Next →'),
+      h('span', { class: 'chapter-nav-title' }, next.title),
+    ) : h('span'),
+  ) : null;
+
   const main = h('article', { class: 'chapter' },
     h('h1', null, chapter.title),
     content,
     h('div', { class: 'chapter-actions' }, ...actionsRow),
+    chapterNav,
     await renderAddendaList({ subject, version, chapterId }),
   );
 

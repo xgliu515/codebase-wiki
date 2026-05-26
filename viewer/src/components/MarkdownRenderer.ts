@@ -77,7 +77,8 @@ export function renderMarkdown(md: string, ctx: RenderContext): HTMLElement {
       heading({ tokens, depth, text }: Tokens.Heading): string {
         const id = slugifyHeading(text);
         const inner = this.parser.parseInline(tokens);
-        return `<h${depth} id="${id}">${inner}</h${depth}>\n`;
+        const anchor = `<a class="heading-anchor" href="#${id}" aria-label="permalink" tabindex="-1">#</a>`;
+        return `<h${depth} id="${id}">${inner}${anchor}</h${depth}>\n`;
       },
 
       code({ text, lang }: Tokens.Code): string {
