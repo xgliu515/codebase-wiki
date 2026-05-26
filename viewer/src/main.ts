@@ -87,10 +87,32 @@ function scrollAfterPaint(): void {
   window.scrollTo(0, 0);
 }
 
+/**
+ * The "sidebar group key" — two routes share the same sidebar when they share
+ * subject + version. Other routes (home / me / admin) each get a unique key so
+ * we never restore stale scrollTop from an unrelated sidebar.
+ */
+function sidebarKey(route: Route): string {
+  if ('subject' in route && 'version' in route) {
+    return `wiki/${route.subject}/${route.version}`;
+  }
+  return route.kind;
+}
+
 let currentPaintId = 0;
+let lastSidebarKey: string | null = null;
 
 async function paint(route: Route) {
   const paintId = ++currentPaintId;
+  const key = sidebarKey(route);
+
+  // Capture the existing sidebar's scrollTop before we wipe the DOM. We restore
+  // it after the new render IF the new route shares the same sidebar group —
+  // otherwise the old number is meaningless (different chapter list).
+  const prevSidebar = root!.querySelector<HTMLElement>('.sidebar');
+  const prevScroll = prevSidebar ? prevSidebar.scrollTop : 0;
+  const sameGroup = key === lastSidebarKey;
+
   clear(root!);
   root!.appendChild(renderTopbar());
   const loading = h('main', { class: 'loading' }, 'Loading…');
@@ -100,12 +122,20 @@ async function paint(route: Route) {
     if (paintId !== currentPaintId) return;
     if (loading.parentNode === root) root!.removeChild(loading);
     root!.appendChild(page);
-    // Defer scroll one frame so the browser has laid out the new content.
-    requestAnimationFrame(scrollAfterPaint);
+    lastSidebarKey = key;
+    // Defer one frame so layout has settled before we mutate scroll positions.
+    requestAnimationFrame(() => {
+      if (sameGroup) {
+        const newSidebar = root!.querySelector<HTMLElement>('.sidebar');
+        if (newSidebar) newSidebar.scrollTop = prevScroll;
+      }
+      scrollAfterPaint();
+    });
   } catch (e: any) {
     if (paintId !== currentPaintId) return;
     if (loading.parentNode === root) root!.removeChild(loading);
     root!.appendChild(renderError(e));
+    lastSidebarKey = key;
   }
 }
 
