@@ -5,7 +5,7 @@
   "type": "module",
   "main": "./dist/server.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json && cp -r src/db/migrations dist/db/migrations && mkdir -p dist/static && cp src/static/shell.html dist/static/shell.html",
+    "build": "tsc -p tsconfig.json && cp -r src/db/migrations dist/db/migrations && mkdir -p dist/static && cp src/static/shell.html dist/static/shell.html && (cp ../viewer/dist/bundle.js dist/static/bundle.js 2>/dev/null || true) && (cp ../viewer/dist/bundle.js.map dist/static/bundle.js.map 2>/dev/null || true) && (cp ../viewer/dist/main.css dist/static/main.css 2>/dev/null || true)",
     "start": "node ./dist/server.js",
     "dev": "tsx watch src/server.ts",
     "test": "vitest run",

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve as resolvePath } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Hono } from 'hono';
+import { serveStatic } from '@hono/node-server/serve-static';
 import { getCookie } from 'hono/cookie';
 import type { DB } from './db/connection.js';
 import { createAuthRoutes, type AuthEnv } from './auth/routes.js';
@@ -43,6 +44,8 @@ export function createApp(opts?: AppOptions) {
     app.route('/api/v1/wikis', createQuizRoutes(opts.db, opts.env));
     app.route('/api/v1/wikis', createProgressRoutes(opts.db));
     app.route('/api/v1/wikis', createAddendaRoutes(opts.db, opts.env));
+
+    app.use('/static/*', serveStatic({ root: resolvePath(__here) }));
 
     const { db, env } = opts;
     const adminLogins = new Set(env.ADMIN_GITHUB_LOGINS.split(',').map((s) => s.trim()).filter(Boolean));
