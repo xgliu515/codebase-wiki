@@ -45,12 +45,31 @@ export async function renderTourStep(
   const prev = tour.steps[idx - 1];
   const next = tour.steps[idx + 1];
 
+  const stepsTotal = tour.steps.length;
+  const progressPct = Math.round((idx + 1) / stepsTotal * 100);
+
   const main = h('article', { class: 'tour-step' },
     h('div', { class: 'breadcrumb' },
       h('a', {
         href: `/wiki/${subject}/${version}/tour/${tourId}`,
         onclick: (e: MouseEvent) => { e.preventDefault(); navigate(`/wiki/${subject}/${version}/tour/${tourId}`); },
       }, tour.title), ' › ', step.title),
+    h('div', { class: 'tour-progress-strip' },
+      h('div', { class: 'tour-progress-label' },
+        h('span', null, `Step ${idx + 1} of ${stepsTotal}`),
+        h('span', { class: 'tour-progress-pct' }, `${progressPct}%`),
+      ),
+      h('div', { class: 'tour-progress-bar' },
+        h('div', { class: 'tour-progress-bar-fill', style: `width: ${progressPct}%` }),
+      ),
+      h('div', { class: 'tour-progress-dots' },
+        ...tour.steps.map((s, i) => h('span', {
+          class: `tour-progress-dot${i === idx ? ' active' : ''}${i < idx ? ' done' : ''}`,
+          title: `Step ${i + 1}: ${s.title}`,
+          onclick: () => navigate(`/wiki/${subject}/${version}/tour/${tourId}/${s.order}`),
+        })),
+      ),
+    ),
     h('h1', null, `Step ${step.order}: ${step.title}`),
     renderMarkdown(step.markdown, { subject, version, manifest }),
     h('nav', { class: 'tour-nav' },

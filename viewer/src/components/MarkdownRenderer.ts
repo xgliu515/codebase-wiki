@@ -112,7 +112,36 @@ export function renderMarkdown(md: string, ctx: RenderContext): HTMLElement {
 
   const el = h('div', { class: 'markdown-body', html });
   attachCopyHandlers(el);
+  decorateExternalLinks(el);
   return el;
+}
+
+/**
+ * Add an ↗ marker (CSS pseudo-element) to anchors that point to a different
+ * origin. Skips internal anchors (#fragment), API routes, file-ref links
+ * (which already have 🔗 prefix), and same-origin links.
+ */
+function decorateExternalLinks(root: HTMLElement): void {
+  const here = location.origin;
+  root.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((a) => {
+    if (a.classList.contains('file-ref')) return;
+    if (a.classList.contains('heading-anchor')) return;
+    const href = a.getAttribute('href') ?? '';
+    if (!href || href.startsWith('#')) return;
+    if (href.startsWith('/api/')) return;
+    if (href.startsWith('/')) return;  // internal SPA route
+    // Absolute URL — check origin
+    try {
+      const u = new URL(href, location.origin);
+      if (u.origin !== here) {
+        a.classList.add('external-link');
+        if (!a.target) a.target = '_blank';
+        a.rel = (a.rel ? a.rel + ' ' : '') + 'noopener noreferrer';
+      }
+    } catch {
+      /* malformed href — skip */
+    }
+  });
 }
 
 function attachCopyHandlers(root: HTMLElement): void {

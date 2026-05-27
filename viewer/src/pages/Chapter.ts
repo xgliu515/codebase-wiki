@@ -110,20 +110,95 @@ function buildToc(content: HTMLElement): HTMLElement | null {
   const headings = content.querySelectorAll<HTMLElement>('h2[id], h3[id]');
   if (headings.length === 0) return null;
   const items: HTMLElement[] = [];
-  headings.forEach((hd) => {
+  const headingArr = Array.from(headings);
+  const linkById = new Map<string, HTMLAnchorElement>();
+  headingArr.forEach((hd) => {
     const id = hd.id;
-    // Heading rendered as: text + <a class="heading-anchor">#</a> — clone text part only
     const clone = hd.cloneNode(true) as HTMLElement;
     clone.querySelectorAll('.heading-anchor').forEach((a) => a.remove());
     const text = clone.textContent?.trim() ?? id;
-    items.push(h('li', { class: `toc-${hd.tagName.toLowerCase()}` },
-      h('a', { href: `#${id}` }, text),
-    ));
+    const a = h('a', { href: `#${id}`, 'data-toc-target': id }, text) as HTMLAnchorElement;
+    linkById.set(id, a);
+    items.push(h('li', { class: `toc-${hd.tagName.toLowerCase()}` }, a));
   });
-  return h('aside', { class: 'chapter-toc' },
+  const toc = h('aside', { class: 'chapter-toc' },
     h('h4', null, 'On this page'),
     h('ul', null, ...items),
   );
+  // Activate the first heading by default before scroll fires
+  if (linkById.size > 0) {
+    const firstLink = linkById.values().next().value;
+    if (firstLink) firstLink.classList.add('active');
+  }
+  // Install IntersectionObserver to highlight currently-in-view heading
+  // Defer to next frame so headings are laid out
+  requestAnimationFrame(() => installTocSync(headingArr, linkById, toc));
+  return toc;
+}
+
+function installTocSync(
+  headings: HTMLElement[],
+  linkById: Map<string, HTMLAnchorElement>,
+  toc: HTMLElement,
+): void {
+  if (typeof IntersectionObserver === 'undefined') return;
+  // Track visibility ratios; the "active" heading is the topmost one whose
+  // top is above (or at) the viewport's reading line. We use a top rootMargin
+  // so the active heading switches as it crosses near the top of the viewport.
+  const visible = new Set<string>();
+  const setActive = (id: string | null) => {
+    linkById.forEach((a) => a.classList.remove('active'));
+    if (id) {
+      const a = linkById.get(id);
+      if (a) {
+        a.classList.add('active');
+        // Auto-scroll TOC if active item out of TOC viewport
+        const tocBox = toc.getBoundingClientRect();
+        const aBox = a.getBoundingClientRect();
+        if (aBox.top < tocBox.top || aBox.bottom > tocBox.bottom) {
+          a.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+        }
+      }
+    }
+  };
+
+  const obs = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      const id = (e.target as HTMLElement).id;
+      if (e.isIntersecting) visible.add(id);
+      else visible.delete(id);
+    }
+    // Pick the topmost visible heading (by document order)
+    let active: string | null = null;
+    for (const hd of headings) {
+      if (visible.has(hd.id)) { active = hd.id; break; }
+    }
+    // If nothing is in the "visible" window, find the heading just above the viewport
+    if (!active) {
+      let aboveTop: string | null = null;
+      for (const hd of headings) {
+        if (hd.getBoundingClientRect().top < 100) aboveTop = hd.id;
+        else break;
+      }
+      active = aboveTop;
+    }
+    setActive(active);
+  }, {
+    // Active region: top 12% to top 50% of viewport
+    rootMargin: '-12% 0% -50% 0%',
+    threshold: 0,
+  });
+
+  for (const hd of headings) obs.observe(hd);
+
+  // Cleanup when TOC detaches
+  const cleanup = new MutationObserver(() => {
+    if (!toc.isConnected) {
+      obs.disconnect();
+      cleanup.disconnect();
+    }
+  });
+  cleanup.observe(document.body, { childList: true, subtree: true });
 }
 
 export async function renderQuizPage(
