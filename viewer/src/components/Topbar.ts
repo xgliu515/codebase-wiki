@@ -2,9 +2,11 @@ import { h } from '../dom.js';
 import { navigate } from '../router.js';
 import { renderAuthButton } from './AuthButton.js';
 import { renderThemeToggle } from './ThemeToggle.js';
+import { renderDrawerToggle } from './DrawerToggle.js';
 
 export function renderTopbar(): HTMLElement {
   return h('header', { class: 'topbar' },
+    renderDrawerToggle(),
     h('a', {
       class: 'brand',
       href: '/',

@@ -14,6 +14,7 @@ import './theme.js';  // applies persisted theme at module load (side effect)
 import { installLightbox } from './components/Lightbox.js';
 import { installReadingProgress } from './components/ReadingProgress.js';
 import { installShortcuts } from './components/Shortcuts.js';
+import { installDrawerCloseHandlers } from './components/DrawerToggle.js';
 import { renderGlossary } from './pages/Glossary.js';
 
 const root = document.querySelector<HTMLElement>('#app');
@@ -176,3 +177,5 @@ void mount;
 installLightbox();
 // Install global keyboard shortcuts (Cmd+K / / / ? / j / k / Esc)
 installShortcuts();
+// Mobile drawer auto-close handlers
+installDrawerCloseHandlers();
