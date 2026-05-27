@@ -13,6 +13,7 @@ import { renderAdminConsole } from './pages/AdminConsole.js';
 import './theme.js';  // applies persisted theme at module load (side effect)
 import { installLightbox } from './components/Lightbox.js';
 import { installReadingProgress } from './components/ReadingProgress.js';
+import { installShortcuts } from './components/Shortcuts.js';
 import { renderGlossary } from './pages/Glossary.js';
 
 const root = document.querySelector<HTMLElement>('#app');
@@ -173,3 +174,5 @@ void mount;
 
 // Install single global lightbox (delegated click handler) — works across paints
 installLightbox();
+// Install global keyboard shortcuts (Cmd+K / / / ? / j / k / Esc)
+installShortcuts();

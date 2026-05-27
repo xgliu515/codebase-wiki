@@ -58,6 +58,7 @@ export async function renderChapter(
   const chapterNav = (prev || next) ? h('nav', { class: 'chapter-nav' },
     prev ? h('a', {
       class: 'chapter-nav-prev',
+      'data-nav': 'prev',
       href: `/wiki/${subject}/${version}/chapter/${prev.id}`,
       onclick: (e: MouseEvent) => { e.preventDefault(); navigate(`/wiki/${subject}/${version}/chapter/${prev.id}`); },
     },
@@ -66,6 +67,7 @@ export async function renderChapter(
     ) : h('span'),
     next ? h('a', {
       class: 'chapter-nav-next',
+      'data-nav': 'next',
       href: `/wiki/${subject}/${version}/chapter/${next.id}`,
       onclick: (e: MouseEvent) => { e.preventDefault(); navigate(`/wiki/${subject}/${version}/chapter/${next.id}`); },
     },

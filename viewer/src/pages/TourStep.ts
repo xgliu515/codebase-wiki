@@ -55,10 +55,12 @@ export async function renderTourStep(
     renderMarkdown(step.markdown, { subject, version, manifest }),
     h('nav', { class: 'tour-nav' },
       prev && h('a', {
+        'data-nav': 'prev',
         href: `/wiki/${subject}/${version}/tour/${tourId}/${prev.order}`,
         onclick: (e: MouseEvent) => { e.preventDefault(); navigate(`/wiki/${subject}/${version}/tour/${tourId}/${prev.order}`); },
       }, `← ${prev.title}`),
       next && h('a', {
+        'data-nav': 'next',
         href: `/wiki/${subject}/${version}/tour/${tourId}/${next.order}`,
         onclick: (e: MouseEvent) => { e.preventDefault(); navigate(`/wiki/${subject}/${version}/tour/${tourId}/${next.order}`); },
       }, `${next.title} →`),
