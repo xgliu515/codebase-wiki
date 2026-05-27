@@ -39,8 +39,9 @@
   --radius-md: 8px;
 }
 
+/* Dark palette — applied via either OS preference (auto) or explicit override. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg:           #16181d;
     --bg-elev:      #1d2027;
     --bg-soft:      #232730;
@@ -67,6 +68,34 @@
     --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.5);
   }
 }
+/* Manual override: data-theme="dark" forces dark regardless of OS pref */
+:root[data-theme="dark"] {
+  --bg:           #16181d;
+  --bg-elev:      #1d2027;
+  --bg-soft:      #232730;
+  --border:       #2e3340;
+  --text:         #e8e9ec;
+  --text-soft:    #a8acb5;
+  --text-faint:   #6b7080;
+  --accent:       #fb923c;
+  --accent-soft:  #2c1e16;
+  --accent-strong:#fdba74;
+  --link:         #fdba74;
+  --code-bg:      #0f1116;
+  --code-text:    #e8e9ec;
+  --code-inline-bg: #232730;
+  --code-inline-text: #fdba74;
+  --mark-bg:      #4a2a14;
+  --mark-text:    #fed7aa;
+  --correct:      #4ade80;
+  --correct-soft: #1a2e21;
+  --incorrect:    #f87171;
+  --incorrect-soft: #2e1a1a;
+  --error:        #f87171;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+/* data-theme="light" intentionally has no overrides — the default :root is light */
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
@@ -101,7 +130,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .topbar {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
   padding: 0 24px;
   height: var(--topbar-h);
   background: var(--bg-elev);
@@ -111,6 +140,60 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   z-index: 10;
   box-shadow: var(--shadow-sm);
 }
+
+/* Reading progress bar — fixed thin line under the topbar */
+.reading-progress {
+  position: fixed;
+  top: var(--topbar-h);
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: transparent;
+  z-index: 9;
+  pointer-events: none;
+}
+.reading-progress-fill {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 0.08s linear;
+}
+
+/* Image lightbox overlay */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  cursor: zoom-out;
+}
+.lightbox-image {
+  max-width: 92vw;
+  max-height: 92vh;
+  cursor: default;
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+.lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.lightbox-close:hover { background: rgba(255, 255, 255, 0.2); }
+.markdown-body img { cursor: zoom-in; }
 .topbar .brand {
   font-family: var(--font-mono);
   font-weight: 600;
@@ -142,6 +225,23 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   border-bottom: none;
 }
 .auth-btn:hover { background: var(--accent-strong); border-bottom: none; }
+
+.theme-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 
 .auth-menu {
   display: flex;

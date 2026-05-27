@@ -4,6 +4,7 @@ import { renderMarkdown } from '../components/MarkdownRenderer.js';
 import { renderSidebar } from '../components/Sidebar.js';
 import { renderQuizCard } from '../components/QuizCard.js';
 import { renderAddendaList } from '../components/AddendaList.js';
+import { installAutoMarkRead } from '../components/AutoMarkRead.js';
 import { userStore } from '../state.js';
 import { navigate } from '../router.js';
 
@@ -21,15 +22,24 @@ export async function renderChapter(
   const content = renderMarkdown(chapter.markdown, { subject, version, manifest });
 
   const ch = manifest.chapters.find((x) => x.id === chapterId)!;
+  const user = userStore.get();
   const actionsRow: HTMLElement[] = [];
-  if (userStore.get()) {
+  let alreadyRead = false;
+  if (user) {
+    // Check if this chapter is already marked read (best-effort, fail open)
+    try {
+      const p = await api.getProgress(subject);
+      alreadyRead = p.progress.some((row) => row.chapter_id === chapterId && row.status === 'read');
+    } catch { /* anonymous or error — fall through */ }
+
     const markBtn = h('button', {
       onclick: async () => {
         await api.setProgress(subject, version, chapterId, 'read');
         markBtn.textContent = 'Marked read ✓';
         markBtn.disabled = true;
       },
-    }, 'Mark as read');
+    }, alreadyRead ? 'Marked read ✓' : 'Mark as read');
+    if (alreadyRead) markBtn.setAttribute('disabled', '');
     actionsRow.push(markBtn);
   }
   if (ch.quiz_path) {
@@ -76,6 +86,10 @@ export async function renderChapter(
   const toc = buildToc(content);
 
   const main = h('div', { class: 'chapter-with-toc' }, article, toc);
+
+  // Auto mark-as-read on scroll-to-bottom + 4s dwell
+  installAutoMarkRead(article, subject, version, chapterId, Boolean(user), alreadyRead);
+
   return h('div', { class: 'layout' }, sidebar, main);
 }
 

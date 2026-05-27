@@ -10,6 +10,9 @@ import { renderSearch } from './pages/Search.js';
 import { renderMe } from './pages/Me.js';
 import { renderAdminUpload } from './pages/AdminUpload.js';
 import { renderAdminConsole } from './pages/AdminConsole.js';
+import './theme.js';  // applies persisted theme at module load (side effect)
+import { installLightbox } from './components/Lightbox.js';
+import { installReadingProgress } from './components/ReadingProgress.js';
 import { renderGlossary } from './pages/Glossary.js';
 
 const root = document.querySelector<HTMLElement>('#app');
@@ -115,6 +118,10 @@ async function paint(route: Route) {
 
   clear(root!);
   root!.appendChild(renderTopbar());
+  // Reading progress bar — self-cleaning, no-op on routes without an <article.chapter>
+  if (route.kind === 'chapter' || route.kind === 'tour_step') {
+    root!.appendChild(installReadingProgress());
+  }
   const loading = h('main', { class: 'loading' }, 'Loading…');
   root!.appendChild(loading);
   try {
@@ -163,3 +170,6 @@ document.addEventListener('click', (e) => {
 
 // Unused mount import shadow — keep TS happy if someone removes the topbar later
 void mount;
+
+// Install single global lightbox (delegated click handler) — works across paints
+installLightbox();

@@ -1,6 +1,7 @@
 import { h } from '../dom.js';
 import { navigate } from '../router.js';
 import { renderAuthButton } from './AuthButton.js';
+import { renderThemeToggle } from './ThemeToggle.js';
 
 export function renderTopbar(): HTMLElement {
   return h('header', { class: 'topbar' },
@@ -15,6 +16,7 @@ export function renderTopbar(): HTMLElement {
         onclick: (e: MouseEvent) => { e.preventDefault(); navigate('/'); },
       }, 'Subjects'),
     ),
+    renderThemeToggle(),
     renderAuthButton(),
   );
 }
