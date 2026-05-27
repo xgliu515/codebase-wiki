@@ -50,6 +50,13 @@ export async function renderChapter(
       }, 'Start quiz'),
     );
   }
+  actionsRow.push(
+    h('button', {
+      class: 'btn-secondary',
+      title: 'Open browser print dialog — choose "Save as PDF" to export',
+      onclick: () => window.print(),
+    }, '🖨 Print / PDF'),
+  );
 
   // Prev / next chapter by manifest order
   const sortedChapters = manifest.chapters.slice().sort((a, b) => a.order - b.order);
