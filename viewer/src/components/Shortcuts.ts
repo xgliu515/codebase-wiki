@@ -1,5 +1,6 @@
 import { openSearchPalette, closeSearchPalette, isSearchPaletteOpen } from './SearchPalette.js';
 import { toggleHelpPanel, closeHelpPanel, isHelpPanelOpen } from './HelpPanel.js';
+import { openInChapterFind, closeInChapterFind, isInChapterFindOpen } from './InChapterFind.js';
 
 /**
  * Global keyboard shortcuts. Single document-level listener; respects
@@ -16,6 +17,7 @@ export function installShortcuts(): void {
 
     // Esc closes any open modal (lightbox handles its own Esc separately)
     if (e.key === 'Escape') {
+      if (isInChapterFindOpen()) { closeInChapterFind(); return; }
       if (isSearchPaletteOpen()) { closeSearchPalette(); return; }
       if (isHelpPanelOpen()) { closeHelpPanel(); return; }
       return;
@@ -38,6 +40,10 @@ export function installShortcuts(): void {
       case '?':
         e.preventDefault();
         toggleHelpPanel();
+        break;
+      case 'f':
+        e.preventDefault();
+        openInChapterFind();
         break;
       case 'j':
         clickNav('next');

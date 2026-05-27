@@ -4,8 +4,9 @@ let panel: HTMLElement | null = null;
 
 const SHORTCUTS: Array<[string[], string]> = [
   [['?'],          'Show this help'],
-  [['/'],          'Open search'],
-  [['⌘/Ctrl', 'K'],'Open search (alt)'],
+  [['/'],          'Open cross-chapter search'],
+  [['⌘/Ctrl', 'K'],'Open cross-chapter search (alt)'],
+  [['f'],          'Find in current chapter'],
   [['j'],          'Next chapter / tour step'],
   [['k'],          'Previous chapter / tour step'],
   [['Esc'],        'Close any modal'],

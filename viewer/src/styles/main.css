@@ -323,6 +323,70 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   color: var(--text-faint);
 }
 
+/* =========================================================
+   In-chapter find bar (`f` shortcut)
+   ========================================================= */
+
+.find-bar {
+  position: fixed;
+  top: calc(var(--topbar-h) + 12px);
+  right: 24px;
+  z-index: 800;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 6px 8px;
+  font-size: 13px;
+}
+.find-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  width: 200px;
+  padding: 4px 8px;
+}
+.find-counter {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  min-width: 42px;
+  text-align: center;
+}
+.find-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-soft);
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  line-height: 1;
+}
+.find-btn:hover { border-color: var(--accent); color: var(--accent); }
+.find-close { font-size: 16px; }
+
+mark.find-hit {
+  background: rgba(251, 146, 60, 0.25);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+mark.find-hit-active {
+  background: var(--accent);
+  color: white;
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+
 /* Shared kbd style */
 kbd {
   display: inline-block;
