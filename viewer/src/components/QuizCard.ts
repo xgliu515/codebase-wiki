@@ -9,6 +9,44 @@ export type QuizCardOpts = {
   chapterId: string;
 };
 
+// Persist mid-quiz selections so a refresh or accidental navigation doesn't
+// lose work. Key is per (subject, version, chapter). Stored as
+// { qid: optionIds[] }. Cleared on successful submit.
+function draftKey(opts: QuizCardOpts): string {
+  return `cwquiz:${opts.subject}/${opts.version}/${opts.chapterId}`;
+}
+
+function loadDraft(opts: QuizCardOpts): Record<string, string[]> | null {
+  try {
+    const raw = localStorage.getItem(draftKey(opts));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') return parsed as Record<string, string[]>;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function saveDraft(opts: QuizCardOpts, answers: Record<string, Set<string>>): void {
+  try {
+    const flat: Record<string, string[]> = {};
+    for (const [qid, set] of Object.entries(answers)) flat[qid] = [...set];
+    // Skip writing an all-empty draft (clutters localStorage)
+    if (Object.values(flat).every((arr) => arr.length === 0)) {
+      localStorage.removeItem(draftKey(opts));
+      return;
+    }
+    localStorage.setItem(draftKey(opts), JSON.stringify(flat));
+  } catch {
+    /* quota or disabled — ignore */
+  }
+}
+
+function clearDraft(opts: QuizCardOpts): void {
+  try { localStorage.removeItem(draftKey(opts)); } catch { /* ignore */ }
+}
+
 export async function renderQuizCard(opts: QuizCardOpts): Promise<HTMLElement> {
   const { subject, version, chapterId } = opts;
 
@@ -33,9 +71,40 @@ export async function renderQuizCard(opts: QuizCardOpts): Promise<HTMLElement> {
   const userAnswers: Record<string, Set<string>> = {};
   for (const q of quiz.questions) userAnswers[q.id] = new Set();
 
+  // Restore draft if present (must match this quiz's question ids)
+  const draft = loadDraft(opts);
+  let hasDraft = false;
+  if (draft) {
+    for (const q of quiz.questions) {
+      const arr = draft[q.id];
+      if (Array.isArray(arr)) {
+        const optIds = new Set(q.options.map((o) => o.id));
+        for (const a of arr) if (optIds.has(a)) {
+          userAnswers[q.id]!.add(a);
+          hasDraft = true;
+        }
+      }
+    }
+  }
+
   const renderForm = () => {
     clear(container);
     container.appendChild(h('h3', null, `Quiz: ${quiz.questions.length} questions`));
+    if (hasDraft) {
+      container.appendChild(h('p', { class: 'quiz-draft-hint' },
+        'Restored from saved draft. ',
+        h('button', {
+          class: 'quiz-draft-clear',
+          type: 'button',
+          onclick: () => {
+            for (const q of quiz.questions) userAnswers[q.id] = new Set();
+            clearDraft(opts);
+            hasDraft = false;
+            renderForm();
+          },
+        }, 'Clear and start over'),
+      ));
+    }
 
     for (const q of quiz.questions) {
       const optEls = q.options.map((opt) => {
@@ -53,8 +122,13 @@ export async function renderQuizCard(opts: QuizCardOpts): Promise<HTMLElement> {
               if (checked) userAnswers[q.id]!.add(opt.id);
               else userAnswers[q.id]!.delete(opt.id);
             }
+            saveDraft(opts, userAnswers);
           },
         });
+        // Pre-check based on restored draft
+        if (userAnswers[q.id]!.has(opt.id)) {
+          (input as HTMLInputElement).checked = true;
+        }
         return h('label', { class: 'quiz-option' }, input, ' ', opt.text);
       });
 
@@ -76,6 +150,7 @@ export async function renderQuizCard(opts: QuizCardOpts): Promise<HTMLElement> {
         }
         try {
           const result = await api.submitAttempt(subject, version, chapterId, answers);
+          clearDraft(opts);
           renderResults(result);
         } catch (e: any) {
           submitBtn.disabled = false;
@@ -103,7 +178,12 @@ export async function renderQuizCard(opts: QuizCardOpts): Promise<HTMLElement> {
       );
     }
     const retry = h('button', {
-      onclick: () => { for (const q of quiz.questions) userAnswers[q.id] = new Set(); renderForm(); },
+      onclick: () => {
+        for (const q of quiz.questions) userAnswers[q.id] = new Set();
+        clearDraft(opts);
+        hasDraft = false;
+        renderForm();
+      },
     }, 'Try again');
     container.appendChild(retry);
   };

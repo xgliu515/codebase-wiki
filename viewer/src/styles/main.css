@@ -1321,22 +1321,234 @@ article > h1 { margin-top: 0; }
 .upload-status .error { color: var(--error); }
 .upload-status .success { color: var(--correct); }
 
+/* Upload progress bar */
+.upload-progress { margin: 12px 0; }
+.upload-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-soft);
+  margin-bottom: 6px;
+}
+.upload-progress-pct {
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+}
+.upload-progress-bar {
+  height: 8px;
+  background: var(--bg-soft);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.upload-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.15s ease;
+}
+
+/* Quiz draft restored hint */
+.quiz-draft-hint {
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 8px 12px;
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--text-soft);
+}
+.quiz-draft-clear {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  text-decoration: underline;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 4px;
+}
+.quiz-draft-clear:hover { color: var(--accent-strong); }
+
 /* =========================================================
-   Me page
+   Me dashboard
    ========================================================= */
 
-.me-page { padding: 40px; max-width: 700px; margin: 0 auto; }
-.me-page h1 { font-size: 24px; margin: 0 0 4px; }
-.me-page h2 {
-  font-size: 14px;
+.me-page { padding: 32px 40px 60px; max-width: 900px; margin: 0 auto; }
+.me-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+.me-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+}
+.me-identity h1 { margin: 0; font-size: 22px; }
+.me-handle {
+  margin: 4px 0 0;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.me-admin-badge {
+  margin-left: 8px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-faint);
-  margin: 24px 0 12px;
 }
-.me-page ul { list-style: none; padding: 0; }
-.me-page li { padding: 8px 0; border-bottom: 1px solid var(--border); }
-.me-page li:last-child { border-bottom: none; }
+.me-section { margin-bottom: 32px; }
+.me-section h2 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+.me-loading,
+.me-empty {
+  color: var(--text-faint);
+  font-style: italic;
+  margin: 0;
+  padding: 8px 0;
+}
+
+.me-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+.me-progress-card {
+  display: block;
+  padding: 14px 16px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.me-progress-card:hover {
+  border-color: var(--accent);
+  border-bottom-color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+.me-progress-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.me-progress-card-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+.me-progress-card-stats {
+  font-size: 12px;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+.me-progress-bar {
+  height: 6px;
+  background: var(--bg-soft);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 6px 0 8px;
+}
+.me-progress-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+.me-progress-card-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.me-attempts,
+.me-addenda {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.me-attempt-row,
+.me-addendum-row {
+  margin: 0 0 6px;
+}
+.me-attempt-link,
+.me-addendum-link {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.me-attempt-link:hover,
+.me-addendum-link:hover {
+  border-color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.me-attempt-score {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  min-width: 50px;
+  text-align: center;
+}
+.me-attempt-score.perfect { background: var(--correct-soft); color: var(--correct); }
+.me-attempt-score.good { background: var(--accent-soft); color: var(--accent); }
+.me-attempt-score.low { background: var(--incorrect-soft); color: var(--incorrect); }
+.me-attempt-where {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text);
+}
+.me-attempt-when {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+
+.me-addendum-link {
+  display: block;
+}
+.me-addendum-question {
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 4px;
+  /* Truncate long questions to one line */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.me-addendum-meta {
+  display: flex;
+  gap: 14px;
+  font-size: 11px;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}
 
 /* =========================================================
    Heading anchors (permalink # on hover)

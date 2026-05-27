@@ -107,19 +107,35 @@ export const api = {
     ),
 
   // Admin
-  uploadWiki: async (file: File, force = false): Promise<{ subject: string; version: string }> => {
-    const url = force ? '/api/v1/admin/wikis?force=true' : '/api/v1/admin/wikis';
-    const res = await fetch(url, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'content-type': 'application/gzip' },
-      body: file,
+  // Uses XMLHttpRequest (not fetch) so upload progress can be reported.
+  // onProgress receives a float in [0..1] for sent bytes.
+  uploadWiki: (
+    file: File,
+    opts: { force?: boolean; onProgress?: (frac: number) => void } = {},
+  ): Promise<{ subject: string; version: string }> => {
+    const url = opts.force ? '/api/v1/admin/wikis?force=true' : '/api/v1/admin/wikis';
+    return new Promise((resolveOK, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', url);
+      xhr.setRequestHeader('content-type', 'application/gzip');
+      xhr.withCredentials = true;
+      if (opts.onProgress) {
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable && e.total > 0) opts.onProgress!(e.loaded / e.total);
+        });
+      }
+      xhr.onload = () => {
+        let body: { error?: string; message?: string; subject?: string; version?: string } = {};
+        try { body = JSON.parse(xhr.responseText); } catch { /* ignore */ }
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolveOK({ subject: body.subject ?? '', version: body.version ?? '' });
+        } else {
+          reject(new ApiError(xhr.status, body.error ?? 'upload_failed', body.message ?? `HTTP ${xhr.status}`));
+        }
+      };
+      xhr.onerror = () => reject(new ApiError(0, 'network_error', 'Upload network error'));
+      xhr.send(file);
     });
-    if (!res.ok) {
-      const body = await res.json();
-      throw new ApiError(res.status, body.error ?? 'upload_failed', body.message ?? 'upload failed');
-    }
-    return res.json();
   },
 
   adminListAll: () =>
@@ -160,4 +176,31 @@ export const api = {
       `/api/v1/admin/wikis/${subject}/${version}/latest`,
       {},
     ),
+
+  // Per-user dashboard
+  myRecentAttempts: (limit = 20) =>
+    jget<{
+      attempts: Array<{
+        id: number;
+        subject_slug: string;
+        version_label: string;
+        chapter_id: string;
+        attempted_at: number;
+        score: number;
+        question_count: number;
+      }>;
+    }>(`/api/v1/me/recent-attempts?limit=${limit}`),
+
+  myAddenda: (limit = 20) =>
+    jget<{
+      addenda: Array<{
+        id: number;
+        subject_slug: string;
+        version_label: string;
+        chapter_id: string;
+        question: string;
+        answer: string | null;
+        created_at: number;
+      }>;
+    }>(`/api/v1/me/addenda?limit=${limit}`),
 };

@@ -11,6 +11,7 @@ import { createWikisRoutes } from './wikis/routes.js';
 import { createQuizRoutes } from './quiz/routes.js';
 import { createProgressRoutes } from './progress/routes.js';
 import { createAddendaRoutes } from './addenda/routes.js';
+import { createMeRoutes } from './me/routes.js';
 import { getSessionUser } from './auth/session.js';
 
 const __here = dirname(fileURLToPath(import.meta.url));
@@ -44,6 +45,7 @@ export function createApp(opts?: AppOptions) {
     app.route('/api/v1/wikis', createQuizRoutes(opts.db, opts.env));
     app.route('/api/v1/wikis', createProgressRoutes(opts.db));
     app.route('/api/v1/wikis', createAddendaRoutes(opts.db, opts.env));
+    app.route('/api/v1/me', createMeRoutes(opts.db));
 
     app.use('/static/*', serveStatic({ root: resolvePath(__here) }));
 
