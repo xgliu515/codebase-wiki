@@ -5,6 +5,7 @@ import { renderSidebar } from '../components/Sidebar.js';
 import { renderQuizCard } from '../components/QuizCard.js';
 import { renderAddendaList } from '../components/AddendaList.js';
 import { installAutoMarkRead } from '../components/AutoMarkRead.js';
+import { decorateWithGlossary } from '../components/GlossaryInline.js';
 import { userStore } from '../state.js';
 import { navigate } from '../router.js';
 
@@ -91,6 +92,9 @@ export async function renderChapter(
 
   // Auto mark-as-read on scroll-to-bottom + 4s dwell
   installAutoMarkRead(article, subject, version, chapterId, Boolean(user), alreadyRead);
+
+  // Decorate inline glossary terms (fire-and-forget)
+  void decorateWithGlossary(content, subject, version);
 
   return h('div', { class: 'layout' }, sidebar, main);
 }

@@ -15,6 +15,7 @@ import { installLightbox } from './components/Lightbox.js';
 import { installReadingProgress } from './components/ReadingProgress.js';
 import { installShortcuts } from './components/Shortcuts.js';
 import { installDrawerCloseHandlers } from './components/DrawerToggle.js';
+import { installGlossaryHandlers } from './components/GlossaryInline.js';
 import { renderGlossary } from './pages/Glossary.js';
 
 const root = document.querySelector<HTMLElement>('#app');
@@ -179,3 +180,5 @@ installLightbox();
 installShortcuts();
 // Mobile drawer auto-close handlers
 installDrawerCloseHandlers();
+// Glossary term click → popover (delegated)
+installGlossaryHandlers();
