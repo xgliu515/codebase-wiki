@@ -1258,9 +1258,37 @@ article > h1 { margin-top: 0; }
   padding: 12px 14px;
   margin-bottom: 10px;
 }
-.addenda-list .question { margin: 0 0 6px; }
-.addenda-list .answer { margin: 6px 0; color: var(--text-soft); }
-.addenda-list .meta { font-size: 11px; color: var(--text-faint); margin-top: 6px; }
+.addendum-question-block,
+.addendum-answer-block {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+.addendum-answer-block { color: var(--text-soft); }
+.addendum-label {
+  flex: 0 0 auto;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 1px 7px;
+  border-radius: 3px;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+}
+.addendum-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.addendum-body > :first-child { margin-top: 0; }
+.addendum-body > :last-child { margin-bottom: 0; }
+.addendum-body h1, .addendum-body h2, .addendum-body h3 { font-size: 15px; border: none; padding: 0; margin-top: 0.5em; margin-bottom: 0.3em; }
+.addendum-body .code-block { margin: 8px 0; }
+.addendum-body .code-block pre { padding: 10px 12px; font-size: 12px; }
+.addenda-list .meta { font-size: 11px; color: var(--text-faint); margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border); }
 .addenda-list .empty {
   background: transparent;
   border: 1px dashed var(--border);
@@ -1268,39 +1296,98 @@ article > h1 { margin-top: 0; }
   text-align: center;
   border-left-color: var(--border);
 }
+
 .addendum-form {
   margin-top: 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
 }
-.addendum-form textarea {
+.addendum-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.addendum-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-soft);
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.addendum-tab:hover { color: var(--accent); }
+.addendum-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.addendum-textarea {
   width: 100%;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg-elev);
+  background: var(--bg);
   color: var(--text);
-  font-family: inherit;
-  font-size: 14px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
   resize: vertical;
+  min-height: 100px;
 }
-.addendum-form textarea:focus {
+.addendum-textarea:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
-.addendum-form button {
-  align-self: flex-start;
+.addendum-preview {
+  min-height: 100px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+.addendum-preview-empty {
+  color: var(--text-faint);
+  font-style: italic;
+  margin: 0;
+}
+.addendum-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.addendum-hint {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.addendum-hint code {
+  background: var(--bg-soft);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  color: var(--text-soft);
+}
+.addendum-submit {
   background: var(--accent);
   color: white;
   border: none;
   border-radius: var(--radius-sm);
   padding: 7px 16px;
   font-weight: 500;
+  cursor: pointer;
 }
-.addendum-form button:hover { background: var(--accent-strong); }
-.addendum-form button:disabled { opacity: 0.5; cursor: default; }
+.addendum-submit:hover { background: var(--accent-strong); }
+.addendum-submit:disabled { opacity: 0.5; cursor: default; }
 .addenda .signin-hint {
   color: var(--text-faint);
   font-size: 13px;

@@ -82,7 +82,7 @@ export async function renderChapter(
     content,
     h('div', { class: 'chapter-actions' }, ...actionsRow),
     chapterNav,
-    await renderAddendaList({ subject, version, chapterId }),
+    await renderAddendaList({ subject, version, chapterId, manifest }),
   );
 
   // Build a "On this page" TOC from h2/h3 in rendered content
